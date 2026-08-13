@@ -10,6 +10,7 @@
     href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
     rel="stylesheet">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
   <style>
     :root {
       --bg: #16161a;
@@ -661,6 +662,7 @@
         <a href="#section-suivi">Suivi</a>
       </div>
       <div class="topnav-actions">
+        <button class="btn-ghost btn-small" id="templateConfigBtn" title="Modèles de lettre & mails">✉️ Modèles</button>
         <button class="btn-ghost btn-small" id="googleConfigBtn" title="Client ID Google Cloud">🔐 Google Auth</button>
         <button class="btn-ghost btn-small" id="apiKeyBtn" title="Clés API Gemini / Claude">🔑 Clés API</button>
         <button class="btn-ghost btn-small" id="sheetOpenBtn">📄 Google Sheet</button>
@@ -678,7 +680,7 @@
         l'exportation Sheets.</p>
       <div class="field">
         <label for="cfgClientId">Client ID OAuth Google</label>
-        <input type="text" id="cfgClientId" placeholder="781329608589-...apps.googleusercontent.com">
+        <input type="text" id="cfgClientId" placeholder="781329608589-5o3sc5tq3jch7ivlv3bg9gg9o6jb94e4.apps.googleusercontent.com">
       </div>
       <div class="field">
         <label for="cfgProjectId">ID du Projet Google Cloud</label>
@@ -705,6 +707,67 @@
       <div class="action-row">
         <button class="btn-primary" id="saveApiKeysBtn">Enregistrer les clés API</button>
         <button class="btn-ghost" id="closeApiKeysBtn">Fermer</button>
+      </div>
+    </div>
+
+    <!-- Panneau de Configuration Google Sheet -->
+    <div class="panel" id="sheetConfigPanel" style="display:none; border-color: var(--teal);">
+      <h2>Lien Google Sheet</h2>
+      <p class="hint">Saisissez l'URL de votre Google Sheet de suivi des candidatures.</p>
+      <div class="field">
+        <label for="cfgSheetUrl">URL de la Google Sheet</label>
+        <input type="text" id="cfgSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/1FPaCN3TvYL7J9WjBaaNRZjD37uzBQ-SzsvvGjwdLt9U/edit?gid=0#gid=0">
+      </div>
+      <div class="action-row">
+        <button class="btn-primary" id="saveSheetCfgBtn">Enregistrer</button>
+        <button class="btn-ghost" id="openSheetCfgBtn">Ouvrir la feuille ↗</button>
+        <button class="btn-ghost" id="closeSheetCfgBtn">Fermer</button>
+      </div>
+    </div>
+
+    <!-- Panneau de Configuration des Modèles de Textes -->
+    <div class="panel" id="templateConfigPanel" style="display:none; border-color: var(--teal);">
+      <h2>Éditeur de Modèles (Lettre & Mails)</h2>
+      <p class="hint">Modifiez ici les modèles utilisés pour générer vos lettres et emails. Variables disponibles : <code>{studio}</code>, <code>{poste}</code>, <code>{reel}</code>, <code>{argumentsLettre}</code>, <code>{dateEnvoi}</code>.</p>
+      <div class="field">
+        <label for="cfgTplLettre">Modèle de Lettre de Motivation</label>
+        <textarea id="cfgTplLettre" style="min-height: 180px;"></textarea>
+      </div>
+      <div class="field">
+        <label for="cfgTplMailEnvoi">Modèle d'Email de Candidature Initial</label>
+        <textarea id="cfgTplMailEnvoi" style="min-height: 100px;"></textarea>
+      </div>
+      <div class="field">
+        <label for="cfgTplMailRelance">Modèle d'Email de Relance</label>
+        <textarea id="cfgTplMailRelance" style="min-height: 100px;"></textarea>
+      </div>
+      <div class="action-row">
+        <button class="btn-primary" id="saveTplBtn">Enregistrer les Modèles</button>
+        <button class="btn-ghost" id="resetTplBtn">Réinitialiser par Défaut</button>
+        <button class="btn-ghost" id="closeTplBtn">Fermer</button>
+      </div>
+    </div>
+
+    <!-- Générateur / Visualiseur de Documents & Emails -->
+    <div class="panel draft" id="docGeneratorPanel" style="display:none; border-color: var(--teal);">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+        <h2 id="docGenTitle" style="margin:0;">Générateur de Candidature</h2>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-ghost btn-small doc-tab-btn active" id="tabBtnLettre">📝 Lettre de Motivation</button>
+          <button class="btn-ghost btn-small doc-tab-btn" id="tabBtnMailEnvoi">✉️ Email d'Envoi</button>
+          <button class="btn-ghost btn-small doc-tab-btn" id="tabBtnMailRelance">🔄 Email de Relance</button>
+        </div>
+      </div>
+      <p class="hint" style="margin-top:8px;">Le texte ci-dessous est personnalisé avec les données de l'offre et reste 100% éditable avant export.</p>
+      <div class="field">
+        <textarea id="genDocText" style="min-height: 260px; font-family: inherit; font-size: 0.9rem; line-height: 1.6;"></textarea>
+      </div>
+      <div class="action-row">
+        <button class="btn-primary" id="downloadDocxBtn">📥 Télécharger en Word (.docx)</button>
+        <button class="btn-ghost" id="copyDocTextBtn">📋 Copier le texte</button>
+        <button class="btn-ghost" id="openMailtoBtn">✉️ Ouvrir Client Mail</button>
+        <button class="btn-primary" id="markSentBtn" style="background: var(--amber); color: #16161a;">✅ Marquer comme Envoyé & Synchro</button>
+        <button class="btn-ghost" id="closeDocGenBtn">Fermer</button>
       </div>
     </div>
 
@@ -983,6 +1046,7 @@
       <td><input type="text" class="notes-entretien" data-field="notesEntretien" data-id="${e.id}" value="${escapeHtml(e.notesEntretien || '')}" placeholder="Note..."></td>
       <td>
         <div class="row-actions">
+          <button class="btn-primary btn-small doc-row" data-id="${e.id}">📄 Lettre & Mails</button>
           <button class="btn-ghost btn-small copy-row" data-id="${e.id}">Copier</button>
           <button class="btn-danger-ghost btn-small del-row" data-id="${e.id}">Suppr.</button>
         </div>
@@ -1026,6 +1090,13 @@
           saveEntries();
         });
       });
+      document.querySelectorAll('.doc-row').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+          const id = ev.target.dataset.id;
+          const entry = entries.find(x => x.id === id);
+          if (entry) openDocGenerator(entry);
+        });
+      });
       document.querySelectorAll('.copy-row').forEach(btn => {
         btn.addEventListener('click', (ev) => {
           const e = entries.find(x => x.id === ev.target.dataset.id);
@@ -1052,11 +1123,16 @@
       return d.innerHTML;
     }
 
+    // VALEURS ET CONFIGURATION PAR DÉFAUT
+    const DEFAULT_CLIENT_ID = '781329608589-5o3sc5tq3jch7ivlv3bg9gg9o6jb94e4.apps.googleusercontent.com';
+    const DEFAULT_PROJECT_ID = 'hippojob';
+    const DEFAULT_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1FPaCN3TvYL7J9WjBaaNRZjD37uzBQ-SzsvvGjwdLt9U/edit?gid=0#gid=0';
+
     // GESTION DU PANNEAU GOOGLE AUTH
     $('googleConfigBtn').addEventListener('click', () => {
       const panel = $('googleConfigPanel');
-      $('cfgClientId').value = localStorage.getItem('google-client-id') || '';
-      $('cfgProjectId').value = localStorage.getItem('google-project-id') || '';
+      $('cfgClientId').value = localStorage.getItem('google-client-id') || DEFAULT_CLIENT_ID;
+      $('cfgProjectId').value = localStorage.getItem('google-project-id') || DEFAULT_PROJECT_ID;
       panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     });
 
@@ -1065,8 +1141,8 @@
     });
 
     $('saveGoogleCfgBtn').addEventListener('click', () => {
-      localStorage.setItem('google-client-id', $('cfgClientId').value.trim());
-      localStorage.setItem('google-project-id', $('cfgProjectId').value.trim());
+      localStorage.setItem('google-client-id', $('cfgClientId').value.trim() || DEFAULT_CLIENT_ID);
+      localStorage.setItem('google-project-id', $('cfgProjectId').value.trim() || DEFAULT_PROJECT_ID);
       $('googleConfigPanel').style.display = 'none';
       showToast('Configuration Google enregistrée !');
     });
@@ -1090,8 +1166,291 @@
       showToast('Clés API enregistrées !');
     });
 
+    // GESTION DU PANNEAU GOOGLE SHEET
+    const SHEET_URL_KEY = 'google-sheet-url';
+    function openSheetPanel() {
+      const panel = $('sheetConfigPanel');
+      $('cfgSheetUrl').value = localStorage.getItem(SHEET_URL_KEY) || DEFAULT_SHEET_URL;
+      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    }
+
+    $('sheetEditBtn').addEventListener('click', openSheetPanel);
+
+    function handleOpenSheet() {
+      const url = localStorage.getItem(SHEET_URL_KEY) || DEFAULT_SHEET_URL;
+      window.open(url, '_blank');
+    }
+
+    $('sheetOpenBtn').addEventListener('click', handleOpenSheet);
+    $('loadSheetBtn').addEventListener('click', handleOpenSheet);
+
+    $('saveSheetCfgBtn').addEventListener('click', () => {
+      const url = $('cfgSheetUrl').value.trim() || DEFAULT_SHEET_URL;
+      localStorage.setItem(SHEET_URL_KEY, url);
+      $('sheetConfigPanel').style.display = 'none';
+      showToast('Lien Google Sheet enregistré !');
+    });
+
+    $('openSheetCfgBtn').addEventListener('click', () => {
+      const url = $('cfgSheetUrl').value.trim() || localStorage.getItem(SHEET_URL_KEY) || DEFAULT_SHEET_URL;
+      window.open(url, '_blank');
+    });
+
+    $('closeSheetCfgBtn').addEventListener('click', () => {
+      $('sheetConfigPanel').style.display = 'none';
+    });
+
+    // GESTION DES MODÈLES ET DU GÉNÉRATEUR DE DOCUMENTS
+    const TPL_LETTRE_KEY = 'tpl-lettre';
+    const TPL_MAIL_ENVOI_KEY = 'tpl-mail-envoi';
+    const TPL_MAIL_RELANCE_KEY = 'tpl-mail-relance';
+
+    const DEFAULT_TPL_LETTRE = `Objet : Candidature {poste} – Hippolyte Combault
+
+Bonjour,
+
+Fraîchement diplômé de Rubika, je suis depuis longtemps le travail de {studio} et j'ai beaucoup d'admiration pour vos projets. Je vous écris aujourd'hui car je suis très motivé par votre offre de poste de {poste}.
+
+Le rig est l'une de mes spécialités, mais j'ai aussi une vraie passion pour l'animation 3D. Pour mon film de fin d'études, Icefall, j'étais à la fois Lead Rigger et Lead Animateur au sein d'une équipe de six. Cette expérience a été très formatrice : elle m'a appris à créer des rigs pensés pour les animateurs, parce que je connais bien les contraintes et les besoins qu'ils rencontrent au quotidien.
+
+{argumentsLettre}
+
+À terme, mon objectif est de travailler en tant qu'animateur 3D, mais je suis convaincu que mon profil de rigger est un vrai atout pour intégrer votre studio et contribuer efficacement à votre pipeline dès maintenant.
+
+Je suis actuellement basé à Paris, mais je suis tout à fait prêt à déménager. Je privilégie le présentiel, car j'aime le contact direct et l'échange avec les équipes pour avancer sur les projets.
+
+Je serais ravi de vous montrer mon travail et d'échanger avec vous. Merci d'avoir pris le temps de lire ma candidature.
+
+À bientôt,
+
+Hippolyte Combault
+06 00 00 00 00
+https://hippolytecombault.com (Portfolio & Reel)`;
+
+    const DEFAULT_TPL_MAIL_ENVOI = `Objet : Candidature {poste} - Hippolyte Combault
+
+Bonjour,
+
+Veuillez trouver ci-joint ma candidature pour le poste de {poste} au sein de {studio}.
+
+Passionné par l'animation 3D et le rigging (diplômé de Rubika), vous trouverez ma lettre de motivation et mon portfolio/demo reel ci-dessous :
+🔗 Portfolio & Reel : https://hippolytecombault.com
+
+Je reste à votre disposition pour échanger de vive voix.
+
+Bien cordialement,
+Hippolyte Combault`;
+
+    const DEFAULT_TPL_MAIL_RELANCE = `Objet : Relance - Candidature {poste} - Hippolyte Combault
+
+Bonjour,
+
+Je me permets de revenir vers vous concernant ma candidature transmise le {dateEnvoi} pour le poste de {poste} au sein de {studio}.
+
+Toujours extrêmement enthousiasmé par vos productions et très motivé à l'idée de rejoindre vos équipes, je me tiens à votre entière disposition pour tout renseignement complémentaire ou pour convenir d'un entretien.
+
+En vous remerciant par avance pour votre attention,
+
+Bien cordialement,
+Hippolyte Combault`;
+
+    $('templateConfigBtn').addEventListener('click', () => {
+      const panel = $('templateConfigPanel');
+      $('cfgTplLettre').value = localStorage.getItem(TPL_LETTRE_KEY) || DEFAULT_TPL_LETTRE;
+      $('cfgTplMailEnvoi').value = localStorage.getItem(TPL_MAIL_ENVOI_KEY) || DEFAULT_TPL_MAIL_ENVOI;
+      $('cfgTplMailRelance').value = localStorage.getItem(TPL_MAIL_RELANCE_KEY) || DEFAULT_TPL_MAIL_RELANCE;
+      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    });
+
+    $('closeTplBtn').addEventListener('click', () => {
+      $('templateConfigPanel').style.display = 'none';
+    });
+
+    $('saveTplBtn').addEventListener('click', () => {
+      localStorage.setItem(TPL_LETTRE_KEY, $('cfgTplLettre').value.trim() || DEFAULT_TPL_LETTRE);
+      localStorage.setItem(TPL_MAIL_ENVOI_KEY, $('cfgTplMailEnvoi').value.trim() || DEFAULT_TPL_MAIL_ENVOI);
+      localStorage.setItem(TPL_MAIL_RELANCE_KEY, $('cfgTplMailRelance').value.trim() || DEFAULT_TPL_MAIL_RELANCE);
+      $('templateConfigPanel').style.display = 'none';
+      showToast('Modèles de textes enregistrés !');
+    });
+
+    $('resetTplBtn').addEventListener('click', () => {
+      localStorage.removeItem(TPL_LETTRE_KEY);
+      localStorage.removeItem(TPL_MAIL_ENVOI_KEY);
+      localStorage.removeItem(TPL_MAIL_RELANCE_KEY);
+      $('cfgTplLettre').value = DEFAULT_TPL_LETTRE;
+      $('cfgTplMailEnvoi').value = DEFAULT_TPL_MAIL_ENVOI;
+      $('cfgTplMailRelance').value = DEFAULT_TPL_MAIL_RELANCE;
+      showToast('Modèles réinitialisés par défaut.');
+    });
+
+    let currentDocEntry = null;
+    let currentDocTab = 'lettre';
+
+    function openDocGenerator(entry) {
+      currentDocEntry = entry;
+      currentDocTab = 'lettre';
+      updateDocTabButtons();
+      renderDocText();
+      $('docGeneratorPanel').style.display = 'block';
+      $('docGeneratorPanel').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function updateDocTabButtons() {
+      $('tabBtnLettre').classList.toggle('active', currentDocTab === 'lettre');
+      $('tabBtnMailEnvoi').classList.toggle('active', currentDocTab === 'mailEnvoi');
+      $('tabBtnMailRelance').classList.toggle('active', currentDocTab === 'mailRelance');
+    }
+
+    function renderDocText() {
+      if (!currentDocEntry) return;
+      const studio = currentDocEntry.studio || 'votre studio';
+      const poste = currentDocEntry.poste || 'poste de création';
+      const reel = currentDocEntry.reel || 'Animation / Rigging';
+      const argsArr = currentDocEntry.argumentsLettre || [];
+      const argsStr = argsArr.length > 0
+        ? `Mon profil se distingue par plusieurs atouts clés pour vos projets : ${argsArr.join(', ')}.`
+        : '';
+      const dateEnvoi = currentDocEntry.dateEnvoi || todayISO();
+
+      let tpl = '';
+      if (currentDocTab === 'lettre') {
+        tpl = localStorage.getItem(TPL_LETTRE_KEY) || DEFAULT_TPL_LETTRE;
+      } else if (currentDocTab === 'mailEnvoi') {
+        tpl = localStorage.getItem(TPL_MAIL_ENVOI_KEY) || DEFAULT_TPL_MAIL_ENVOI;
+      } else if (currentDocTab === 'mailRelance') {
+        tpl = localStorage.getItem(TPL_MAIL_RELANCE_KEY) || DEFAULT_TPL_MAIL_RELANCE;
+      }
+
+      const compiled = tpl
+        .replace(/{studio}/g, studio)
+        .replace(/{poste}/g, poste)
+        .replace(/{reel}/g, reel)
+        .replace(/{argumentsLettre}/g, argsStr)
+        .replace(/{dateEnvoi}/g, dateEnvoi);
+
+      $('genDocText').value = compiled;
+      $('docGenTitle').textContent = `Document — ${studio} (${poste})`;
+    }
+
+    $('tabBtnLettre').addEventListener('click', () => { currentDocTab = 'lettre'; updateDocTabButtons(); renderDocText(); });
+    $('tabBtnMailEnvoi').addEventListener('click', () => { currentDocTab = 'mailEnvoi'; updateDocTabButtons(); renderDocText(); });
+    $('tabBtnMailRelance').addEventListener('click', () => { currentDocTab = 'mailRelance'; updateDocTabButtons(); renderDocText(); });
+
+    $('closeDocGenBtn').addEventListener('click', () => {
+      $('docGeneratorPanel').style.display = 'none';
+      currentDocEntry = null;
+    });
+
+    $('copyDocTextBtn').addEventListener('click', () => {
+      copyToClipboard($('genDocText').value);
+      showToast('Texte copié dans le presse-papier !');
+    });
+
+    $('openMailtoBtn').addEventListener('click', () => {
+      const text = $('genDocText').value;
+      const lines = text.split('\n');
+      const subject = lines[0].startsWith('Objet :') ? lines[0].replace('Objet :', '').trim() : `Candidature ${currentDocEntry?.poste || ''}`;
+      const body = lines.slice(1).join('\n').trim();
+      const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.open(mailtoUrl, '_blank');
+    });
+
+    $('downloadDocxBtn').addEventListener('click', async () => {
+      if (!currentDocEntry) return;
+      const text = $('genDocText').value;
+      if (!text) {
+        showToast('Aucun texte à exporter.');
+        return;
+      }
+      try {
+        const docxLib = window.docx;
+        if (!docxLib) throw new Error('Bibliothèque docx non disponible');
+
+        const paragraphs = text.split('\n').map(line => new docxLib.Paragraph({
+          children: [new docxLib.TextRun({ text: line, font: 'Calibri', size: 23 })],
+          spacing: { after: 100 }
+        }));
+
+        const doc = new docxLib.Document({
+          sections: [{
+            properties: {},
+            children: paragraphs
+          }]
+        });
+
+        const blob = await docxLib.Packer.toBlob(doc);
+        const fileName = `Lettre_Motivation_${currentDocEntry.studio.replace(/[^a-zA-Z0-9]/g, '_')}_${currentDocEntry.poste.replace(/[^a-zA-Z0-9]/g, '_')}.docx`;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('Fichier Word (.docx) téléchargé !');
+      } catch (err) {
+        console.error(err);
+        showToast('Erreur génération Word : ' + err.message);
+      }
+    });
+
+    $('markSentBtn').addEventListener('click', () => {
+      if (!currentDocEntry) return;
+      currentDocEntry.statut = currentDocTab === 'mailRelance' ? 'Relancé' : 'Envoyé';
+      if (!currentDocEntry.dateEnvoi) currentDocEntry.dateEnvoi = todayISO();
+      currentDocEntry.relance = plusDaysISO(7);
+      saveEntries();
+      render();
+      showToast(`Candidature chez ${currentDocEntry.studio} mise à jour en '${currentDocEntry.statut}' !`);
+    });
+
+    $('sendSheetBtn').addEventListener('click', () => {
+      const url = localStorage.getItem(SHEET_URL_KEY);
+      if (!url) {
+        openSheetPanel();
+        showToast('Configurez votre Google Sheet pour la synchro');
+        return;
+      }
+      showToast('Copié dans le presse-papier pour synchro');
+      $('copyAllBtn').click();
+    });
+
+    $('copyAllBtn').addEventListener('click', () => {
+      const header = ['Studio', 'Poste', 'Reel', 'Contact', 'Date Envoi', 'Relance Prévue', 'Lien', 'À mettre en avant'].join('\t');
+      const rows = entries.map(e => [e.studio, e.poste, e.reel, e.contact || '', e.dateEnvoi || '', e.relance || '', e.lien || '', (e.argumentsLettre || []).join(' | ')].join('\t'));
+      copyToClipboard([header, ...rows].join('\n'));
+      showToast('Tableau copié (pour Sheets / Notion)');
+    });
+
     // IA ET ANALYSE
     const ANALYSIS_SYSTEM_PROMPT = "Tu es un assistant d'analyse d'offres d'emploi pour l'animation 3D, VFX et jeux vidéo. Réponds UNIQUEMENT sous forme d'objet JSON valide (sans texte ni balises markdown avant/après) avec les clés suivantes : studio (string), poste (string), reel (\"Animation\" ou \"Rigging\"), motsCles (tableau 3-5 strings), priorite (\"Haute\", \"Moyenne\" ou \"Basse\"), note (court résumé), argumentsLettre (tableau 2-4 strings).";
+
+    $('copyPromptBtn').addEventListener('click', () => {
+      const text = $('jobText').value.trim();
+      if (!text) {
+        showToast("Colle le texte de l'annonce d'abord.");
+        return;
+      }
+      const fullPrompt = `${ANALYSIS_SYSTEM_PROMPT}\n\nOffre :\n${text}`;
+      copyToClipboard(fullPrompt);
+      showToast("Prompt copié ! Colle-le dans Claude/ChatGPT.");
+      $('manualResponseWrap').style.display = 'block';
+      $('manualResponseText').focus();
+    });
+
+    $('useManualResponseBtn').addEventListener('click', () => {
+      const rawText = $('manualResponseText').value.trim();
+      if (!rawText) {
+        showToast("Colle la réponse JSON d'abord.");
+        return;
+      }
+      try {
+        applyAnalysisResponse(rawText, $('analyzeStatus'));
+        showToast("Analyse appliquée avec succès !");
+      } catch (err) {
+        showToast("Erreur dans le format JSON collé.");
+      }
+    });
 
     function applyAnalysisResponse(rawText, statusEl) {
       const clean = rawText.replace(/```json|```/g, '').trim();
@@ -1185,6 +1544,11 @@
       $('draftPanel').style.display = 'block';
     }
 
+    $('discardBtn').addEventListener('click', () => {
+      $('draftPanel').style.display = 'none';
+      draft = null;
+    });
+
     $('addBtn').addEventListener('click', () => {
       const entry = {
         id: 'e' + Date.now(),
@@ -1205,7 +1569,193 @@
       showToast('Ajouté au suivi');
     });
 
+    // GESTION VEILLE
+    const VEILLE_KEY = 'candidatures-veille';
+    let veilleList = [];
+    const DEFAULT_VEILLE = [
+      { id: 'v1', nom: 'LinkedIn — 3D Animator', lien: 'https://www.linkedin.com/jobs/search/?keywords=3D%20Animator', groupe: 'Animation' },
+      { id: 'v2', nom: 'LinkedIn — Rigging', lien: 'https://www.linkedin.com/jobs/search/?keywords=Rigging', groupe: 'Rigging' },
+      { id: 'v3', nom: 'ArtStation Jobs', lien: 'https://www.artstation.com/jobs', groupe: 'Général' }
+    ];
+
+    function loadVeille() {
+      try {
+        const raw = localStorage.getItem(VEILLE_KEY);
+        veilleList = raw ? JSON.parse(raw) : DEFAULT_VEILLE;
+      } catch (e) { veilleList = DEFAULT_VEILLE; }
+      renderVeille();
+    }
+
+    function saveVeille() {
+      try { localStorage.setItem(VEILLE_KEY, JSON.stringify(veilleList)); } catch (e) { }
+    }
+
+    function renderVeille() {
+      const container = $('veilleGroups');
+      const datalist = $('veilleGroupList');
+      container.innerHTML = '';
+      datalist.innerHTML = '';
+
+      const groups = {};
+      veilleList.forEach(v => {
+        const g = v.groupe || 'Autre';
+        if (!groups[g]) groups[g] = [];
+        groups[g].push(v);
+      });
+
+      Object.keys(groups).forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g;
+        datalist.appendChild(opt);
+
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'studio-group';
+        groupDiv.innerHTML = `
+          <h3>${escapeHtml(g)}</h3>
+          <div class="veille-grid">
+            ${groups[g].map(item => `
+              <div class="veille-item">
+                <a class="veille-link" href="${escapeHtml(item.lien)}" target="_blank" rel="noopener">${escapeHtml(item.nom)} ↗</a>
+                <button class="del-veille" data-id="${item.id}" title="Supprimer">×</button>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        container.appendChild(groupDiv);
+      });
+
+      container.querySelectorAll('.del-veille').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+          const id = ev.target.dataset.id;
+          veilleList = veilleList.filter(v => v.id !== id);
+          saveVeille();
+          renderVeille();
+          showToast('Lien de veille supprimé');
+        });
+      });
+    }
+
+    $('addVeilleBtn').addEventListener('click', () => {
+      const nom = $('veilleNom').value.trim();
+      const lien = $('veilleLien').value.trim();
+      const groupe = $('veilleGroupe').value.trim() || 'Général';
+      if (!nom || !lien) {
+        showToast('Veuillez remplir le nom et le lien');
+        return;
+      }
+      veilleList.push({ id: 'v' + Date.now(), nom, lien, groupe });
+      saveVeille();
+      renderVeille();
+      $('veilleNom').value = '';
+      $('veilleLien').value = '';
+      $('veilleGroupe').value = '';
+      showToast('Lien de veille ajouté');
+    });
+
+    $('openAllVeilleBtn').addEventListener('click', () => {
+      if (veilleList.length === 0) {
+        showToast('Aucun lien de veille');
+        return;
+      }
+      veilleList.forEach(v => window.open(v.lien, '_blank'));
+    });
+
+    // GESTION STUDIOS
+    const STUDIO_KEY = 'candidatures-studios';
+    let studioList = [];
+    const DEFAULT_STUDIOS = [
+      { id: 's1', nom: 'Illumination Mac Guff', lien: 'https://www.illuminationmacguff.com/careers/', cat: 'Animation / VFX France' },
+      { id: 's2', nom: 'Fortiche Production', lien: 'https://forticheprod.com/careers/', cat: 'Animation / VFX France' },
+      { id: 's3', nom: 'Mikros Animation', lien: 'https://www.mikrosanimation.com/en/careers/', cat: 'Animation / VFX France' },
+      { id: 's4', nom: 'Ubisoft', lien: 'https://www.ubisoft.com/careers', cat: 'Jeux vidéo' }
+    ];
+
+    function loadStudios() {
+      try {
+        const raw = localStorage.getItem(STUDIO_KEY);
+        studioList = raw ? JSON.parse(raw) : DEFAULT_STUDIOS;
+      } catch (e) { studioList = DEFAULT_STUDIOS; }
+      renderStudios();
+    }
+
+    function saveStudios() {
+      try { localStorage.setItem(STUDIO_KEY, JSON.stringify(studioList)); } catch (e) { }
+    }
+
+    function renderStudios() {
+      const container = $('studioGroups');
+      const datalist = $('categoryList');
+      container.innerHTML = '';
+      datalist.innerHTML = '';
+
+      const cats = {};
+      studioList.forEach(s => {
+        const c = s.cat || 'Autre';
+        if (!cats[c]) cats[c] = [];
+        cats[c].push(s);
+      });
+
+      Object.keys(cats).forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        datalist.appendChild(opt);
+
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'studio-group';
+        groupDiv.innerHTML = `
+          <h3>${escapeHtml(c)}</h3>
+          <div class="studio-chip-row">
+            ${cats[c].map(item => `
+              <div class="studio-chip">
+                <a href="${escapeHtml(item.lien)}" target="_blank" rel="noopener">${escapeHtml(item.nom)} ↗</a>
+                <button class="del-studio" data-id="${item.id}" title="Supprimer">×</button>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        container.appendChild(groupDiv);
+      });
+
+      container.querySelectorAll('.del-studio').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+          const id = ev.target.dataset.id;
+          studioList = studioList.filter(s => s.id !== id);
+          saveStudios();
+          renderStudios();
+          showToast('Studio supprimé');
+        });
+      });
+    }
+
+    $('addStudioBtn').addEventListener('click', () => {
+      const nom = $('studioNom').value.trim();
+      const lien = $('studioLien').value.trim();
+      const cat = $('studioCat').value.trim() || 'Animation / VFX France';
+      if (!nom || !lien) {
+        showToast('Veuillez remplir le nom du studio et son lien');
+        return;
+      }
+      studioList.push({ id: 's' + Date.now(), nom, lien, cat });
+      saveStudios();
+      renderStudios();
+      $('studioNom').value = '';
+      $('studioLien').value = '';
+      $('studioCat').value = '';
+      showToast('Studio ajouté');
+    });
+
+    $('openAllStudiosBtn').addEventListener('click', () => {
+      if (studioList.length === 0) {
+        showToast('Aucun studio à ouvrir');
+        return;
+      }
+      studioList.forEach(s => window.open(s.lien, '_blank'));
+    });
+
+    // INITIALISATION GENERALE
     loadEntries();
+    loadVeille();
+    loadStudios();
   </script>
 </body>
 
