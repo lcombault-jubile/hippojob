@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi Candidatures — Animation / Rigging</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{
+    --bg: #16161a;
+    --panel: #1f1f24;
+    --panel-raised: #26262d;
+    --line: #302f38;
+    --text: #ece9e2;
+    --muted: #8d8d97;
+    --teal: #6fe7c4;
+    --amber: #f0a860;
+    --red: #e8615a;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce){
+    * { animation: none !important; transition: none !important; }
+  }
+  html, body{
+    margin:0; padding:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .topnav{
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(22,22,26,.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topnav-inner{
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .topnav-brand{
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: .95rem;
+    white-space: nowrap;
+  }
+  .topnav-links{
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+  .topnav-links a{
+    color: var(--muted);
+    text-decoration: none;
+    font-size: .82rem;
+    font-weight: 500;
+  }
+  .topnav-links a:hover, .topnav-links a:focus-visible{ color: var(--teal); }
+  .topnav-actions{ display: flex; gap: 6px; }
+  .anchor-section{ scroll-margin-top: 76px; }
+  .wrap{
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 28px 20px 80px;
+  }
+
+  .slate{
+    background: repeating-linear-gradient(135deg, #202024 0 22px, #1b1b1f 22px 44px);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    margin-bottom: 26px;
+    position: relative;
+    overflow: hidden;
+  }
+  .slate::before{
+    content:"";
+    position:absolute; top:0; left:0; right:0; height:10px;
+    background: repeating-linear-gradient(-45deg, #000 0 14px, #fff 14px 28px);
+    opacity:.9;
+  }
+  .slate-inner{ margin-top: 14px; }
+  .slate h1{
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+  .slate .sub{
+    color: var(--muted);
+    font-size: .92rem;
+    margin: 0;
+  }
+  .slate-fields{
+    display:flex; gap: 22px; margin-top: 16px; flex-wrap: wrap;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .slate-fields b{
+    color: var(--teal);
+    font-weight: 500;
+    display:block;
+    font-size: 1.1rem;
+    font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: 0;
+    text-transform: none;
+    margin-top: 2px;
+  }
+
+  .panel{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .panel h2{
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+  .panel .hint{
+    color: var(--muted);
+    font-size: .85rem;
+    margin: 0 0 14px;
+  }
+
+  label{
+    display:block;
+    font-size: .78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  textarea, input[type=text], input[type=date], select{
+    width: 100%;
+    background: var(--panel-raised);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 10px 12px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: .92rem;
+    resize: vertical;
+  }
+  textarea:focus, input:focus, select:focus, button:focus-visible{
+    outline: 2px solid var(--teal);
+    outline-offset: 1px;
+  }
+  textarea{ min-height: 140px; line-height: 1.5; }
+  .field{ margin-bottom: 14px; }
+  .action-row{ display: flex; gap: 10px; flex-wrap: wrap; }
+  .action-row button{ flex: 1; min-width: 200px; }
+  .row2{ display:grid; grid-template-columns: 1fr 220px; gap: 14px; }
+  @media (max-width: 620px){ .row2{ grid-template-columns: 1fr; } }
+
+  button{
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: .88rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    padding: 10px 18px;
+    cursor: pointer;
+    transition: transform .08s ease, opacity .15s ease;
+  }
+  button:active{ transform: scale(0.98); }
+  .btn-primary{ background: var(--teal); color: #10241d; }
+  .btn-primary:hover{ opacity: .9; }
+  .btn-primary:disabled{ opacity: .5; cursor: not-allowed; }
+  .btn-ghost{ background: transparent; border-color: var(--line); color: var(--text); }
+  .btn-ghost:hover{ border-color: var(--teal); }
+  .btn-small{ padding: 6px 10px; font-size: .76rem; }
+  .btn-danger-ghost{ background: transparent; border-color: var(--line); color: var(--red); }
+
+  .status-line{ font-size: .85rem; color: var(--muted); margin-top: 10px; min-height: 1.2em; }
+  .status-line.error{ color: var(--red); }
+
+  .draft{ border-color: var(--teal); }
+  .tag-row{ display:flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .tag{
+    background: rgba(111,231,196,.12);
+    color: var(--teal);
+    border: 1px solid rgba(111,231,196,.35);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .76rem;
+  }
+  .pill{
+    display:inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: .74rem;
+    font-family: 'IBM Plex Mono', monospace;
+    border: 1px solid var(--line);
+  }
+  .pill.reel-Animation{ color: var(--teal); border-color: rgba(111,231,196,.4); }
+  .pill.reel-Rigging{ color: var(--amber); border-color: rgba(240,168,96,.4); }
+  .pill.prio-Haute{ color: var(--red); border-color: rgba(232,97,90,.4); }
+  .pill.prio-Moyenne{ color: var(--amber); border-color: rgba(240,168,96,.4); }
+  .pill.prio-Basse{ color: var(--muted); }
+
+  .table-head{
+    display:flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; flex-wrap: wrap; gap:10px;
+  }
+  .count{ font-family: 'IBM Plex Mono', monospace; color: var(--muted); font-size: .82rem; }
+  .sheet{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .84rem;
+  }
+  .sheet th{
+    text-align: left;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: .68rem;
+    letter-spacing: .05em;
+    color: var(--muted);
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  .sheet td{
+    padding: 10px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  .sheet tr:hover td{ background: rgba(255,255,255,.02); }
+  .idx{ font-family: 'IBM Plex Mono', monospace; color: var(--muted); }
+  .studio-cell b{ display:block; font-family: 'Space Grotesk', sans-serif; }
+  .studio-cell span{ color: var(--muted); font-size: .8rem; }
+  .kw-cell{ display:flex; flex-wrap:wrap; gap:4px; max-width: 200px; }
+  .kw-mini{ font-size: .68rem; font-family: 'IBM Plex Mono', monospace; color: var(--muted); border: 1px solid var(--line); padding: 2px 6px; border-radius: 6px; }
+  .studio-cell a.cell-link{
+    display: inline-block;
+    margin-top: 4px;
+    font-size: .72rem;
+    color: var(--teal);
+    text-decoration: none;
+  }
+  .studio-cell a.cell-link:hover{ text-decoration: underline; }
+  .kw-mini.highlight{ color: var(--amber); border-color: rgba(240,168,96,.4); }
+  select.statut{ font-size: .78rem; padding: 6px 8px; }
+  input.relance-date{ font-size: .78rem; padding: 6px 8px; min-width: 130px; }
+  input.notes-entretien{ font-size: .78rem; padding: 6px 8px; min-width: 160px; }
+  .row-actions{ display:flex; gap: 6px; }
+  .form-subhead{
+    font-family: 'IBM Plex Mono', monospace;
+    text-transform: uppercase;
+    font-size: .72rem;
+    letter-spacing: .06em;
+    color: var(--muted);
+    margin: 20px 0 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .studio-group{ margin-bottom: 16px; }
+  .studio-group:last-child{ margin-bottom: 0; }
+  .studio-group h3{
+    font-family: 'IBM Plex Mono', monospace;
+    text-transform: uppercase;
+    font-size: .72rem;
+    letter-spacing: .06em;
+    color: var(--muted);
+    margin: 0 0 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+  }
+  .studio-chip-row{ display:flex; flex-wrap: wrap; gap: 8px; }
+  .studio-chip{
+    display:flex; align-items:center; gap: 8px;
+    background: var(--panel-raised);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 8px 6px 14px;
+  }
+  .studio-chip a{
+    color: var(--text);
+    text-decoration: none;
+    font-size: .85rem;
+    font-weight: 500;
+  }
+  .studio-chip a:hover{ color: var(--teal); }
+  .studio-chip .del-studio{
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: .95rem;
+    line-height: 1;
+    padding: 4px 6px;
+    border-radius: 50%;
+  }
+  .studio-chip .del-studio:hover{ color: var(--red); background: rgba(232,97,90,.12); }
+  .veille-item{ position: relative; }
+  .veille-item .del-veille{
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: .85rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .veille-item .del-veille:hover{ color: var(--red); border-color: rgba(232,97,90,.4); background: rgba(232,97,90,.12); }
+  .veille-item .veille-link{ padding-right: 32px; }
+  .veille-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+  }
+  .veille-link{
+    display: block;
+    background: var(--panel-raised);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: .86rem;
+    font-weight: 500;
+    transition: border-color .12s ease, color .12s ease;
+  }
+  .veille-link:hover, .veille-link:focus-visible{
+    border-color: var(--teal);
+    color: var(--teal);
+    outline: none;
+  }
+  .empty{
+    text-align:center;
+    color: var(--muted);
+    padding: 40px 20px;
+    font-size: .9rem;
+  }
+
+  .toast{
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--panel-raised); border: 1px solid var(--teal);
+    color: var(--text); padding: 10px 18px; border-radius: 8px;
+    font-size: .85rem; opacity: 0; pointer-events: none;
+    transition: opacity .2s ease, transform .2s ease;
+  }
+  .toast.show{ opacity: 1; transform: translateX(-50%) translateY(-4px); }
+
+  footer{
+    text-align:center; color: var(--muted); font-size: .75rem; margin-top: 30px;
+  }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="topnav-inner">
+    <span class="topnav-brand">Suivi Candidatures</span>
+    <div class="topnav-links">
+      <a href="#section-veille">Veille</a>
+      <a href="#section-studios">Studios</a>
+      <a href="#section-analyser">Analyser</a>
+      <a href="#section-suivi">Suivi</a>
+    </div>
+    <div class="topnav-actions">
+      <button class="btn-ghost btn-small" id="googleConfigBtn" title="Client ID Google Cloud">🔐 Google Auth</button>
+      <button class="btn-ghost btn-small" id="apiKeyBtn" title="Clé API Claude / Gemini">🔑 Clés API</button>
+      <button class="btn-ghost btn-small" id="sheetOpenBtn">📄 Google Sheet</button>
+      <button class="btn-ghost btn-small" id="sheetEditBtn" title="Modifier le lien">✎</button>
+    </div>
+  </div>
+</nav>
+<div class="wrap">
+
+  <div class="slate">
+    <div class="slate-inner">
+      <h1>Suivi Candidatures</h1>
+      <p class="sub">Animation 3D · Rigging · VFX / Jeu vidéo — Hippolyte, Rubika</p>
+      <div class="slate-fields">
+        <div>Reels prêts<b>Animation · Rigging</b></div>
+        <div>Dossiers suivis<b id="statTotal">0</b></div>
+        <div>À relancer<b id="statRelance">0</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel anchor-section" id="section-veille">
+    <div class="table-head">
+      <h2 style="margin:0;">Veille du jour</h2>
+      <button class="btn-ghost btn-small" id="openAllVeilleBtn">Ouvrir tous les onglets</button>
+    </div>
+    <p class="hint">Recherches déjà filtrées — un clic ouvre les dernières offres sur chaque site.</p>
+
+    <div id="veilleGroups"></div>
+
+    <h3 class="form-subhead">Ajouter un lien</h3>
+    <div class="row2" style="align-items:end;">
+      <div class="field" style="margin-bottom:0;">
+        <label for="veilleNom">Libellé</label>
+        <input type="text" id="veilleNom" placeholder="Ex. LinkedIn — VFX Artist">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label for="veilleLien">Lien de recherche</label>
+        <input type="text" id="veilleLien" placeholder="https://...">
+      </div>
+    </div>
+    <div class="row2" style="margin-top:14px;">
+      <div class="field" style="margin-bottom:0;">
+        <label for="veilleGroupe">Groupe</label>
+        <input type="text" id="veilleGroupe" list="veilleGroupList" placeholder="Ex. France, International...">
+        <datalist id="veilleGroupList"></datalist>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>&nbsp;</label>
+        <button class="btn-primary" id="addVeilleBtn" style="width:100%">Ajouter le lien</button>
+      </div>
+    </div>
+    <div class="status-line" id="veilleStatus"></div>
+  </div>
+
+  <div class="panel anchor-section" id="section-studios">
+    <div class="table-head">
+      <h2 style="margin:0;">Studios suivis</h2>
+      <button class="btn-ghost btn-small" id="openAllStudiosBtn">Ouvrir tous les onglets</button>
+    </div>
+    <p class="hint">Regroupés par catégorie.</p>
+
+    <div id="studioGroups"></div>
+
+    <h3 class="form-subhead">Ajouter un studio</h3>
+    <div class="row2" style="align-items:end;">
+      <div class="field" style="margin-bottom:0;">
+        <label for="studioNom">Nom du studio</label>
+        <input type="text" id="studioNom" placeholder="Ex. Illumination Mac Guff">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label for="studioLien">Lien carrières</label>
+        <input type="text" id="studioLien" placeholder="https://...">
+      </div>
+    </div>
+    <div class="row2" style="margin-top:14px;">
+      <div class="field" style="margin-bottom:0;">
+        <label for="studioCat">Catégorie</label>
+        <input type="text" id="studioCat" list="categoryList" placeholder="Ex. Animation / VFX France">
+        <datalist id="categoryList"></datalist>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>&nbsp;</label>
+        <button class="btn-primary" id="addStudioBtn" style="width:100%">Ajouter le studio</button>
+      </div>
+    </div>
+    <div class="status-line" id="studioStatus"></div>
+  </div>
+
+  <div class="panel anchor-section" id="section-analyser">
+    <h2>Analyser une offre</h2>
+    <p class="hint">Colle le texte complet de l'annonce pour une analyse instantanée par IA.</p>
+    <div class="field">
+      <label for="jobLink">Lien de l'annonce</label>
+      <input type="text" id="jobLink" placeholder="https://...">
+    </div>
+    <div class="field">
+      <label for="jobText">Texte de l'annonce</label>
+      <textarea id="jobText" placeholder="Colle ici le texte de l'offre"></textarea>
+    </div>
+
+    <div class="field">
+      <label for="aiProvider">Moteur d'analyse IA</label>
+      <select id="aiProvider">
+        <option value="gemini">Gemini (Clé API Google / Gratuit)</option>
+        <option value="claude">Claude (Clé API Anthropic)</option>
+      </select>
+    </div>
+
+    <div class="action-row">
+      <button class="btn-primary" id="copyPromptBtn">📋 Copier le prompt (pour copier-coller)</button>
+      <button class="btn-ghost" id="analyzeBtn">⚡ Analyser automatiquement</button>
+    </div>
+    <div class="status-line" id="analyzeStatus"></div>
+
+    <div class="field" id="manualResponseWrap" style="display:none; margin-top:16px;">
+      <label for="manualResponseText">Réponse collée depuis Claude.ai / ChatGPT</label>
+      <textarea id="manualResponseText" placeholder="Colle ici le JSON retourné par l'assistant"></textarea>
+      <button class="btn-primary" id="useManualResponseBtn" style="margin-top:10px;">Utiliser cette réponse</button>
+    </div>
+  </div>
+
+  <div class="panel draft" id="draftPanel" style="display:none;">
+    <h2>Résultat de l'analyse</h2>
+    <p class="hint">Vérifie et ajuste avant d'ajouter au suivi.</p>
+    <div class="row2">
+      <div class="field">
+        <label for="dStudio">Studio</label>
+        <input type="text" id="dStudio">
+      </div>
+      <div class="field">
+        <label for="dPriorite">Priorité</label>
+        <select id="dPriorite">
+          <option value="Haute">Haute</option>
+          <option value="Moyenne">Moyenne</option>
+          <option value="Basse">Basse</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="dPoste">Poste</label>
+      <input type="text" id="dPoste">
+    </div>
+    <div class="field">
+      <label for="dLien">Lien de l'annonce</label>
+      <input type="text" id="dLien" placeholder="https://...">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="dReel">Reel à envoyer</label>
+        <select id="dReel">
+          <option value="Animation">Animation</option>
+          <option value="Rigging">Rigging</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="dMotsCles">Mots-clés (séparés par des virgules)</label>
+      <input type="text" id="dMotsCles">
+    </div>
+    <div class="field">
+      <label for="dArguments">À mettre en avant dans la lettre (séparés par des virgules)</label>
+      <input type="text" id="dArguments">
+    </div>
+    <div class="field" id="dNoteWrap" style="display:none;">
+      <label>Note</label>
+      <p class="hint" id="dNote" style="margin:0;"></p>
+    </div>
+    <button class="btn-primary" id="addBtn">Ajouter au suivi</button>
+    <button class="btn-ghost" id="discardBtn">Annuler</button>
+  </div>
+
+  <div class="panel anchor-section" id="section-suivi">
+    <div class="table-head">
+      <h2 style="margin:0;">Tableau de suivi</h2>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <span class="count" id="countLabel">0 dossier</span>
+        <button class="btn-ghost btn-small" id="loadSheetBtn">🔗 Ouvrir Google Sheet</button>
+        <button class="btn-ghost btn-small" id="sendSheetBtn">☁️ Synchro Google Sheet</button>
+        <button class="btn-ghost btn-small" id="copyAllBtn">Copier tout (Sheets / Notion)</button>
+      </div>
+    </div>
+    <p class="hint" style="margin-top:-4px;">Colle directement dans une vue "Tableau" Notion ou Google Sheets.</p>
+    <div style="overflow-x:auto;">
+      <table class="sheet" id="sheetTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Studio / Poste</th>
+            <th>Reel</th>
+            <th>Priorité</th>
+            <th>Mots-clés</th>
+            <th>À mettre en avant</th>
+            <th>Statut</th>
+            <th>Date envoi</th>
+            <th>Relance</th>
+            <th>Réponse</th>
+            <th>Entretien</th>
+            <th>Notes entretien</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="sheetBody"></tbody>
+      </table>
+      <div class="empty" id="emptyState">Aucune offre analysée pour l'instant. Colle une annonce ci-dessus pour commencer.</div>
+    </div>
+  </div>
+
+  <footer>Les données restent stockées localement dans votre navigateur.</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'candidatures-list';
+let entries = [];
+let draft = null;
+
+const $ = (id) => document.getElementById(id);
+
+function showToast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=> t.classList.remove('show'), 2000);
+}
+
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function plusDaysISO(days){
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0,10);
+}
+
+async function loadEntries(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    entries = raw ? JSON.parse(raw) : [];
+  }catch(e){ entries = []; }
+  render();
+}
+
+async function saveEntries(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }catch(e){}
+}
+
+function render(){
+  const body = $('sheetBody');
+  const empty = $('emptyState');
+  body.innerHTML = '';
+
+  if(entries.length === 0){
+    empty.style.display = 'block';
+    $('sheetTable').style.display = 'none';
+  }else{
+    empty.style.display = 'none';
+    $('sheetTable').style.display = 'table';
+  }
+
+  entries.forEach((e, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="idx">${String(i+1).padStart(2,'0')}</td>
+      <td class="studio-cell">
+        <b>${escapeHtml(e.studio)}</b><span>${escapeHtml(e.poste)}</span>
+        ${e.lien ? `<a class="cell-link" href="${escapeHtml(e.lien)}" target="_blank" rel="noopener">Voir l'annonce ↗</a>` : ''}
+      </td>
+      <td><span class="pill reel-${e.reel}">${e.reel}</span></td>
+      <td><span class="pill prio-${e.priorite}">${e.priorite}</span></td>
+      <td><div class="kw-cell">${e.motsCles.map(k=>`<span class="kw-mini">${escapeHtml(k)}</span>`).join('')}</div></td>
+      <td><div class="kw-cell">${(e.argumentsLettre||[]).map(k=>`<span class="kw-mini highlight">${escapeHtml(k)}</span>`).join('') || '<span class="hint" style="margin:0;">—</span>'}</div></td>
+      <td>
+        <select class="statut" data-id="${e.id}">
+          ${['À traiter','Reel à envoyer','Envoyé','Relancé','Entretien','Refus','Sans réponse'].map(s=>`<option value="${s}" ${e.statut===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </td>
+      <td><input type="date" class="relance-date" data-field="dateEnvoi" data-id="${e.id}" value="${e.dateEnvoi || ''}"></td>
+      <td><input type="date" class="relance-date" data-field="relance" data-id="${e.id}" value="${e.relance || ''}"></td>
+      <td><input type="date" class="relance-date" data-field="dateReponse" data-id="${e.id}" value="${e.dateReponse || ''}"></td>
+      <td><input type="date" class="relance-date" data-field="dateEntretien" data-id="${e.id}" value="${e.dateEntretien || ''}"></td>
+      <td><input type="text" class="notes-entretien" data-field="notesEntretien" data-id="${e.id}" value="${escapeHtml(e.notesEntretien || '')}" placeholder="Note..."></td>
+      <td>
+        <div class="row-actions">
+          <button class="btn-ghost btn-small copy-row" data-id="${e.id}">Copier</button>
+          <button class="btn-danger-ghost btn-small del-row" data-id="${e.id}">Suppr.</button>
+        </div>
+      </td>
+    `;
+    body.appendChild(tr);
+  });
+
+  $('countLabel').textContent = `${entries.length} dossier${entries.length>1?'s':''}`;
+  $('statTotal').textContent = entries.length;
+  $('statRelance').textContent = entries.filter(e => e.relance && e.relance <= todayISO() && e.statut !== 'Entretien' && e.statut !== 'Refus').length;
+
+  attachRowHandlers();
+}
+
+function attachRowHandlers(){
+  document.querySelectorAll('.statut').forEach(sel=>{
+    sel.addEventListener('change', (ev)=>{
+      const id = ev.target.dataset.id;
+      const entry = entries.find(e=>e.id===id);
+      entry.statut = ev.target.value;
+      if(ev.target.value === 'Envoyé' && !entry.dateEnvoi){
+        entry.dateEnvoi = todayISO();
+        entry.relance = plusDaysISO(7);
+        render();
+      }
+      saveEntries();
+    });
+  });
+  document.querySelectorAll('.relance-date').forEach(inp=>{
+    inp.addEventListener('change', (ev)=>{
+      const entry = entries.find(e=>e.id===ev.target.dataset.id);
+      entry[ev.target.dataset.field] = ev.target.value;
+      saveEntries();
+    });
+  });
+  document.querySelectorAll('.notes-entretien').forEach(inp=>{
+    inp.addEventListener('change', (ev)=>{
+      const entry = entries.find(e=>e.id===ev.target.dataset.id);
+      entry.notesEntretien = ev.target.value;
+      saveEntries();
+    });
+  });
+  document.querySelectorAll('.copy-row').forEach(btn=>{
+    btn.addEventListener('click', (ev)=>{
+      const e = entries.find(x=>x.id===ev.target.dataset.id);
+      const line = [e.studio, e.poste, e.reel, e.contact||'', e.dateEnvoi||'', e.relance||'', e.lien||'', (e.argumentsLettre||[]).join(' | ')].join('\t');
+      copyToClipboard(line);
+      showToast('Ligne copiée');
+    });
+  });
+  document.querySelectorAll('.del-row').forEach(btn=>{
+    btn.addEventListener('click', (ev)=>{
+      const id = ev.target.dataset.id;
+      entries = entries.filter(e=>e.id!==id);
+      saveEntries();
+      render();
+      showToast('Dossier supprimé');
+    });
+  });
+}
+
+function copyToClipboard(text){ navigator.clipboard?.writeText(text).catch(()=>{}); }
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str ?? '';
+  return d.innerHTML;
+}
+
+$('copyAllBtn').addEventListener('click', ()=>{
+  const header = ['Studio','Poste','Reel','Contact','Date Envoi','Relance Prévue','Lien','À mettre en avant'].join('\t');
+  const rows = entries.map(e => [e.studio, e.poste, e.reel, e.contact||'', e.dateEnvoi||'', e.relance||'', e.lien||'', (e.argumentsLettre||[]).join(' | ')].join('\t'));
+  copyToClipboard([header, ...rows].join('\n'));
+  showToast('Tableau copié');
+});
+
+const ANALYSIS_SYSTEM_PROMPT = "Tu es un assistant d'analyse d'offres d'emploi pour l'animation 3D, VFX et jeux vidéo. Réponds UNIQUEMENT sous forme d'objet JSON valide (sans texte ni balises markdown avant/après) avec les clés suivantes : studio (string), poste (string), reel (\"Animation\" ou \"Rigging\"), motsCles (tableau 3-5 strings), priorite (\"Haute\", \"Moyenne\" ou \"Basse\"), note (court résumé), argumentsLettre (tableau 2-4 strings).";
+
+function applyAnalysisResponse(rawText, statusEl){
+  const clean = rawText.replace(/```json|```/g, '').trim();
+  const parsed = JSON.parse(clean);
+  draft = {
+    studio: parsed.studio || '',
+    poste: parsed.poste || '',
+    reel: parsed.reel === 'Rigging' ? 'Rigging' : 'Animation',
+    motsCles: Array.isArray(parsed.motsCles) ? parsed.motsCles : [],
+    argumentsLettre: Array.isArray(parsed.argumentsLettre) ? parsed.argumentsLettre : [],
+    priorite: ['Haute','Moyenne','Basse'].includes(parsed.priorite) ? parsed.priorite : 'Moyenne',
+    note: parsed.note || '',
+    lien: $('jobLink').value.trim()
+  };
+  fillDraft(draft);
+  if(statusEl) statusEl.textContent = '';
+}
+
+// Gestion des Clés API
+const API_CLAUDE_KEY = 'anthropic-api-key';
+const API_GEMINI_KEY = 'gemini-api-key';
+
+$('apiKeyBtn').addEventListener('click', () => {
+  const gKey = prompt("Clé API Gemini Google (créée sur aistudio.google.com) :", localStorage.getItem(API_GEMINI_KEY) || '');
+  if(gKey !== null) localStorage.setItem(API_GEMINI_KEY, gKey.trim());
+  const cKey = prompt("Clé API Claude Anthropic :", localStorage.getItem(API_CLAUDE_KEY) || '');
+  if(cKey !== null) localStorage.setItem(API_CLAUDE_KEY, cKey.trim());
+  showToast('Clés API sauvegardées');
+});
+
+// Gemini Analysis Call
+async function analyzeWithGemini(text){
+  const apiKey = localStorage.getItem(API_GEMINI_KEY);
+  if(!apiKey) throw new Error("Ajoute ta clé API Gemini (bouton 🔑 en haut)");
+  
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: `${ANALYSIS_SYSTEM_PROMPT}\n\nOffre :\n${text}` }] }]
+    })
+  });
+  if(!res.ok) throw new Error(`Erreur Gemini (${res.status})`);
+  const data = await res.json();
+  const out = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if(!out) throw new Error("Réponse Gemini vide");
+  return out;
+}
+
+// Claude Analysis Call
+async function analyzeWithClaude(text){
+  const apiKey = localStorage.getItem(API_CLAUDE_KEY);
+  if(!apiKey) throw new Error("Ajoute ta clé API Claude (bouton 🔑 en haut)");
+  
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model: "claude-3-5-sonnet-20241022",
+      max_tokens: 1000,
+      system: ANALYSIS_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: text }]
+    })
+  });
+  if(!res.ok) throw new Error(`Erreur Claude (${res.status})`);
+  const data = await res.json();
+  return data.content?.[0]?.text;
+}
+
+$('analyzeBtn').addEventListener('click', async ()=>{
+  const status = $('analyzeStatus');
+  const text = $('jobText').value.trim();
+  if(!text){
+    status.textContent = "Colle le texte de l'annonce d'abord.";
+    status.classList.add('error');
+    return;
+  }
+  status.textContent = 'Analyse en cours…';
+  try{
+    const raw = $('aiProvider').value === 'gemini' ? await analyzeWithGemini(text) : await analyzeWithClaude(text);
+    applyAnalysisResponse(raw, status);
+  }catch(err){
+    status.textContent = err.message;
+    status.classList.add('error');
+  }
+});
+
+function fillDraft(d){
+  $('dStudio').value = d.studio;
+  $('dPoste').value = d.poste;
+  $('dLien').value = d.lien || '';
+  $('dReel').value = d.reel;
+  $('dPriorite').value = d.priorite;
+  $('dMotsCles').value = d.motsCles.join(', ');
+  $('dArguments').value = d.argumentsLettre.join(', ');
+  if(d.note){
+    $('dNoteWrap').style.display = 'block';
+    $('dNote').textContent = d.note;
+  }
+  $('draftPanel').style.display = 'block';
+}
+
+$('addBtn').addEventListener('click', ()=>{
+  const entry = {
+    id: 'e' + Date.now(),
+    studio: $('dStudio').value.trim() || 'Inconnu',
+    poste: $('dPoste').value.trim() || 'Poste non précisé',
+    reel: $('dReel').value,
+    priorite: $('dPriorite').value,
+    motsCles: $('dMotsCles').value.split(',').map(s=>s.trim()).filter(Boolean),
+    argumentsLettre: $('dArguments').value.split(',').map(s=>s.trim()).filter(Boolean),
+    lien: $('dLien').value.trim(),
+    statut: 'À traiter',
+    dateEnvoi: '', relance: '', dateReponse: '', dateEntretien: '', notesEntretien: ''
+  };
+  entries.unshift(entry);
+  saveEntries();
+  render();
+  $('draftPanel').style.display = 'none';
+  showToast('Ajouté au suivi');
+});
+
+loadEntries();
+</script>
+</body>
+</html>
