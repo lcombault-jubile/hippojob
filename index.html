@@ -786,8 +786,14 @@
     <div class="panel anchor-section" id="section-veille">
       <div class="table-head">
         <h2 style="margin:0;">Veille du jour</h2>
-        <button class="btn-ghost btn-small" id="openAllVeilleBtn">Ouvrir tous les onglets</button>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="btn-ghost btn-small" id="openAllVeilleBtn">Ouvrir tous les onglets</button>
+          <button class="btn-ghost btn-small" id="exportVeilleBtn">📤 Exporter JSON</button>
+          <button class="btn-ghost btn-small" id="importVeilleBtn">📥 Importer JSON</button>
+          <button class="btn-ghost btn-small" id="resetVeilleBtn" style="color: var(--amber);">↺ Réinitialiser</button>
+        </div>
       </div>
+      <input type="file" id="importVeilleFile" accept=".json" style="display:none">
       <p class="hint">Recherches déjà filtrées — un clic ouvre les dernières offres sur chaque site.</p>
 
       <div id="veilleGroups"></div>
@@ -820,8 +826,14 @@
     <div class="panel anchor-section" id="section-studios">
       <div class="table-head">
         <h2 style="margin:0;">Studios suivis</h2>
-        <button class="btn-ghost btn-small" id="openAllStudiosBtn">Ouvrir tous les onglets</button>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="btn-ghost btn-small" id="openAllStudiosBtn">Ouvrir tous les onglets</button>
+          <button class="btn-ghost btn-small" id="exportStudiosBtn">📤 Exporter JSON</button>
+          <button class="btn-ghost btn-small" id="importStudiosBtn">📥 Importer JSON</button>
+          <button class="btn-ghost btn-small" id="resetStudiosBtn" style="color: var(--amber);">↺ Réinitialiser</button>
+        </div>
       </div>
+      <input type="file" id="importStudiosFile" accept=".json" style="display:none">
       <p class="hint">Regroupés par catégorie.</p>
 
       <div id="studioGroups"></div>
@@ -1573,9 +1585,18 @@ Hippolyte Combault`;
     const VEILLE_KEY = 'candidatures-veille';
     let veilleList = [];
     const DEFAULT_VEILLE = [
-      { id: 'v1', nom: 'LinkedIn — 3D Animator', lien: 'https://www.linkedin.com/jobs/search/?keywords=3D%20Animator', groupe: 'Animation' },
-      { id: 'v2', nom: 'LinkedIn — Rigging', lien: 'https://www.linkedin.com/jobs/search/?keywords=Rigging', groupe: 'Rigging' },
-      { id: 'v3', nom: 'ArtStation Jobs', lien: 'https://www.artstation.com/jobs', groupe: 'Général' }
+      { id: 'v1', nom: 'LinkedIn — Animateur 3D', lien: 'https://www.linkedin.com/jobs/search-results/?keywords=Animateur%203D&location=France', groupe: 'France' },
+      { id: 'v2', nom: 'LinkedIn — Character Rigger', lien: 'https://www.linkedin.com/jobs/search-results/?keywords=Character%20Rigger&location=France', groupe: 'France' },
+      { id: 'v3', nom: 'Indeed — Animateur 3D', lien: 'https://fr.indeed.com/jobs?q=animateur+3d', groupe: 'France' },
+      { id: 'v4', nom: 'Indeed — Rigger', lien: 'https://fr.indeed.com/jobs?q=rigger', groupe: 'France' },
+      { id: 'v5', nom: "AFCA (cinéma d'animation)", lien: 'https://www.afca.asso.fr/', groupe: 'France' },
+      { id: 'v6', nom: 'LinkedIn — 3D Animator', lien: 'https://www.linkedin.com/jobs/search-results/?keywords=3D%20Animator', groupe: 'International' },
+      { id: 'v7', nom: 'LinkedIn — Character Rigger', lien: 'https://www.linkedin.com/jobs/search-results/?keywords=Character%20Rigger', groupe: 'International' },
+      { id: 'v8', nom: 'Indeed — 3D Animator', lien: 'https://www.indeed.com/jobs?q=3D+Animator', groupe: 'International' },
+      { id: 'v9', nom: 'Indeed — Character Rigger', lien: 'https://www.indeed.com/jobs?q=character+rigger', groupe: 'International' },
+      { id: 'v10', nom: 'ArtStation Jobs', lien: 'https://www.artstation.com/jobs', groupe: 'International' },
+      { id: 'v11', nom: 'Hitmarker', lien: 'https://hitmarker.net/jobs', groupe: 'International' },
+      { id: 'v12', nom: 'VES Job Board (VFX)', lien: 'https://vesglobal.org/jobboard/', groupe: 'International' }
     ];
 
     function loadVeille() {
@@ -1660,14 +1681,65 @@ Hippolyte Combault`;
       veilleList.forEach(v => window.open(v.lien, '_blank'));
     });
 
+    // IMPORT / EXPORT / RESET VEILLE
+    function downloadJSON(data, filename) {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    $('exportVeilleBtn').addEventListener('click', () => {
+      downloadJSON(veilleList, 'hippojob_veille.json');
+      showToast('Liste de veille exportée (JSON)');
+    });
+
+    $('importVeilleBtn').addEventListener('click', () => {
+      $('importVeilleFile').click();
+    });
+
+    $('importVeilleFile').addEventListener('change', (ev) => {
+      const file = ev.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (Array.isArray(parsed)) {
+            veilleList = parsed;
+            saveVeille();
+            renderVeille();
+            showToast('Liste de veille importée avec succès !');
+          }
+        } catch (err) { showToast('Fichier JSON invalide'); }
+      };
+      reader.readAsText(file);
+      ev.target.value = '';
+    });
+
+    $('resetVeilleBtn').addEventListener('click', () => {
+      veilleList = JSON.parse(JSON.stringify(DEFAULT_VEILLE));
+      saveVeille();
+      renderVeille();
+      showToast('Liens de veille réinitialisés !');
+    });
+
     // GESTION STUDIOS
     const STUDIO_KEY = 'candidatures-studios';
     let studioList = [];
     const DEFAULT_STUDIOS = [
-      { id: 's1', nom: 'Illumination Mac Guff', lien: 'https://www.illuminationmacguff.com/careers/', cat: 'Animation / VFX France' },
-      { id: 's2', nom: 'Fortiche Production', lien: 'https://forticheprod.com/careers/', cat: 'Animation / VFX France' },
-      { id: 's3', nom: 'Mikros Animation', lien: 'https://www.mikrosanimation.com/en/careers/', cat: 'Animation / VFX France' },
-      { id: 's4', nom: 'Ubisoft', lien: 'https://www.ubisoft.com/careers', cat: 'Jeux vidéo' }
+      { id: 's1', nom: 'Ubisoft', lien: 'https://www.ubisoft.com/fr-fr/company/careers/search', cat: 'Jeu Vidéo' },
+      { id: 's2', nom: 'TeamTO', lien: 'https://www.teamto.com/recrutement/', cat: 'Animation / VFX France' },
+      { id: 's3', nom: 'Mikros Animation', lien: 'https://careers.smartrecruiters.com/RodeoFX', cat: 'Animation / VFX France' },
+      { id: 's4', nom: 'Xilam Animation', lien: 'https://xilam.com/category/offres-emploi/', cat: 'Animation / VFX France' },
+      { id: 's5', nom: 'Illumination', lien: 'https://www.illumination.com/homepage/careers/', cat: 'Animation Internationale' },
+      { id: 's6', nom: 'DreamWorks Animation', lien: 'https://www.dreamworks.com/careers', cat: 'Animation Internationale' },
+      { id: 's7', nom: 'ILM', lien: 'https://www.ilm.com/careers/', cat: 'VFX International' },
+      { id: 's8', nom: 'Framestore', lien: 'https://www.framestore.com/careers', cat: 'VFX International' },
+      { id: 's9', nom: 'Weta FX', lien: 'https://careers.wetafx.co.nz/', cat: 'VFX International' }
     ];
 
     function loadStudios() {
@@ -1750,6 +1822,42 @@ Hippolyte Combault`;
         return;
       }
       studioList.forEach(s => window.open(s.lien, '_blank'));
+    });
+
+    // IMPORT / EXPORT / RESET STUDIOS
+    $('exportStudiosBtn').addEventListener('click', () => {
+      downloadJSON(studioList, 'hippojob_studios.json');
+      showToast('Liste des studios exportée (JSON)');
+    });
+
+    $('importStudiosBtn').addEventListener('click', () => {
+      $('importStudiosFile').click();
+    });
+
+    $('importStudiosFile').addEventListener('change', (ev) => {
+      const file = ev.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (Array.isArray(parsed)) {
+            studioList = parsed;
+            saveStudios();
+            renderStudios();
+            showToast('Liste des studios importée avec succès !');
+          }
+        } catch (err) { showToast('Fichier JSON invalide'); }
+      };
+      reader.readAsText(file);
+      ev.target.value = '';
+    });
+
+    $('resetStudiosBtn').addEventListener('click', () => {
+      studioList = JSON.parse(JSON.stringify(DEFAULT_STUDIOS));
+      saveStudios();
+      renderStudios();
+      showToast('Liste des studios réinitialisée !');
     });
 
     // INITIALISATION GENERALE
