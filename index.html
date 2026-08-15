@@ -9,7 +9,6 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
     rel="stylesheet">
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
   <style>
     :root {
@@ -784,7 +783,6 @@
       <div class="topnav-actions">
         <button class="btn-ghost btn-small" id="profilBtn" title="Coordonnées & liens (CV, portfolio)">👤 Profil</button>
         <button class="btn-ghost btn-small" id="templateConfigBtn" title="Modèles de lettre & mails">✉️ Modèles</button>
-        <button class="btn-ghost btn-small" id="googleConfigBtn" title="Client ID Google Cloud">🔐 Google Auth</button>
         <button class="btn-ghost btn-small" id="apiKeyBtn" title="Clés API Gemini / Claude">🔑 Clés API</button>
         <button class="btn-ghost btn-small" id="sheetOpenBtn">📄 Google Sheet</button>
         <button class="btn-ghost btn-small" id="sheetEditBtn" title="Modifier le lien">✎</button>
@@ -793,25 +791,6 @@
   </nav>
 
   <div class="wrap">
-
-    <!-- Panneau de Configuration Google Auth -->
-    <div class="panel" id="googleConfigPanel" style="display:none; border-color: var(--teal);">
-      <h2>Configuration Google OAuth</h2>
-      <p class="hint">Saisissez les identifiants de votre projet Google Cloud pour activer l'authentification et
-        l'exportation Sheets.</p>
-      <div class="field">
-        <label for="cfgClientId">Client ID OAuth Google</label>
-        <input type="text" id="cfgClientId" placeholder="781329608589-5o3sc5tq3jch7ivlv3bg9gg9o6jb94e4.apps.googleusercontent.com">
-      </div>
-      <div class="field">
-        <label for="cfgProjectId">ID du Projet Google Cloud</label>
-        <input type="text" id="cfgProjectId" placeholder="hippojob">
-      </div>
-      <div class="action-row">
-        <button class="btn-primary" id="saveGoogleCfgBtn">Enregistrer la configuration</button>
-        <button class="btn-ghost" id="closeGoogleCfgBtn">Fermer</button>
-      </div>
-    </div>
 
     <!-- Panneau Profil du candidat -->
     <div class="panel" id="profilPanel" style="display:none; border-color: var(--teal);">
@@ -869,14 +848,21 @@
     <!-- Panneau de Configuration Google Sheet -->
     <div class="panel" id="sheetConfigPanel" style="display:none; border-color: var(--teal);">
       <h2>Lien Google Sheet</h2>
-      <p class="hint">Saisissez l'URL de votre Google Sheet de suivi des candidatures. Vous pouvez importer directement ses données ci-dessous.</p>
+      <p class="hint">Raccourci vers ta feuille d'archive. <b>Elle doit rester privée</b> : ne la publie pas sur le web.</p>
       <div class="field">
         <label for="cfgSheetUrl">URL de la Google Sheet</label>
-        <input type="text" id="cfgSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/1FPaCN3TvYL7J9WjBaaNRZjD37uzBQ-SzsvvGjwdLt9U/edit?gid=0#gid=0">
+        <input type="text" id="cfgSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
+      </div>
+      <div class="field" style="background:var(--panel-raised); border:1px solid var(--line); border-radius:8px; padding:12px 14px;">
+        <label style="margin-bottom:8px;">Comment échanger avec la feuille</label>
+        <p class="hint" style="margin:0;">
+          <b>Vers Sheets :</b> bouton « ☁️ Copier pour Sheet » dans le tableau de suivi, puis Ctrl+V dans la cellule A1.<br>
+          <b>Depuis Sheets :</b> dans la feuille, <i>Fichier &gt; Télécharger &gt; CSV</i>, puis bouton « 📂 Importer (JSON / CSV) ».<br>
+          <b>Sauvegarde quotidienne :</b> préfère « 💾 Sauvegarder (JSON) », fidèle à 100 % (Sheets reformate les dates).
+        </p>
       </div>
       <div class="action-row">
         <button class="btn-primary" id="saveSheetCfgBtn">Enregistrer</button>
-        <button class="btn-primary" id="fetchSheetCfgBtn" style="background: var(--amber); color: #16161a;">📥 Charger les données maintenant</button>
         <button class="btn-ghost" id="openSheetCfgBtn">Ouvrir la feuille ↗</button>
         <button class="btn-ghost" id="closeSheetCfgBtn">Fermer</button>
       </div>
@@ -1180,7 +1166,6 @@
           <span class="count" id="countLabel">0 dossier</span>
           <button class="btn-ghost btn-small" id="exportEntriesBtn" title="Sauvegarde complète du suivi">💾 Sauvegarder (JSON)</button>
           <button class="btn-ghost btn-small" id="importEntriesBtn" title="Sauvegarde JSON, ou CSV téléchargé depuis Google Sheets">📂 Importer (JSON / CSV)</button>
-          <button class="btn-primary btn-small" id="fetchSheetDataBtn" style="background: var(--amber); color: #16161a;">📥 Charger depuis Google Sheet</button>
           <button class="btn-ghost btn-small" id="loadSheetBtn">🔗 Ouvrir Google Sheet</button>
           <button class="btn-ghost btn-small" id="sendSheetBtn">☁️ Copier pour Sheet</button>
           <button class="btn-ghost btn-small" id="copyAllBtn">Copier tout (Sheets / Notion)</button>
@@ -1367,6 +1352,20 @@
     }
 
     function todayISO() { return new Date().toISOString().slice(0, 10); }
+
+    /**
+     * Formats an ISO date for insertion into a French letter or email.
+     * Why: "transmise le 2026-08-15" reads like a database dump in a cover letter.
+     * @param {string} iso - Date in YYYY-MM-DD form
+     * @returns {string} e.g. "15 août 2026", or the input when unparseable
+     */
+    function formatDateFr(iso) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || '')) return iso || '';
+      const [y, m, d] = iso.split('-').map(Number);
+      const dt = new Date(Date.UTC(y, m - 1, d));
+      if (isNaN(dt.getTime())) return iso;
+      return dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+    }
     function plusDaysISO(days) {
       const d = new Date();
       d.setDate(d.getDate() + days);
@@ -1726,29 +1725,19 @@ Donne-moi :
       return d.innerHTML;
     }
 
-    // VALEURS ET CONFIGURATION PAR DÉFAUT
-    const DEFAULT_CLIENT_ID = '781329608589-5o3sc5tq3jch7ivlv3bg9gg9o6jb94e4.apps.googleusercontent.com';
-    const DEFAULT_PROJECT_ID = 'hippojob';
-    const DEFAULT_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1FPaCN3TvYL7J9WjBaaNRZjD37uzBQ-SzsvvGjwdLt9U/edit?gid=0#gid=0';
+    /*
+     * L'écran « Google Auth » a été supprimé : il enregistrait un Client ID que rien ne lisait,
+     * et le script Google Identity chargé en <head> n'était jamais initialisé. Aucune
+     * authentification n'existait réellement. Les données restent locales à ce navigateur ;
+     * l'échange avec Google Sheets se fait par copier-coller et fichier CSV.
+     */
+    // Vide par défaut : le dépôt est public, l'URL d'une feuille privée n'a rien à y faire.
+    // Chaque utilisateur saisit la sienne, conservée dans son seul navigateur.
+    const DEFAULT_SHEET_URL = '';
 
-    // GESTION DU PANNEAU GOOGLE AUTH
-    $('googleConfigBtn').addEventListener('click', () => {
-      const panel = $('googleConfigPanel');
-      $('cfgClientId').value = lsGet('google-client-id') || DEFAULT_CLIENT_ID;
-      $('cfgProjectId').value = lsGet('google-project-id') || DEFAULT_PROJECT_ID;
-      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-    });
-
-    $('closeGoogleCfgBtn').addEventListener('click', () => {
-      $('googleConfigPanel').style.display = 'none';
-    });
-
-    $('saveGoogleCfgBtn').addEventListener('click', () => {
-      lsSet('google-client-id', $('cfgClientId').value.trim() || DEFAULT_CLIENT_ID);
-      lsSet('google-project-id', $('cfgProjectId').value.trim() || DEFAULT_PROJECT_ID);
-      $('googleConfigPanel').style.display = 'none';
-      showToast('Configuration Google enregistrée !');
-    });
+    // Nettoyage des identifiants OAuth laissés par l'ancien écran « Google Auth ».
+    lsRemove('google-client-id');
+    lsRemove('google-project-id');
 
     // GESTION DU PANNEAU PROFIL
     $('profilBtn').addEventListener('click', () => {
@@ -1836,8 +1825,13 @@ Donne-moi :
      * Why: Gives direct access to the live cloud sheet.
      */
     function handleOpenSheet() {
-      const url = lsGet(SHEET_URL_KEY) || DEFAULT_SHEET_URL;
-      window.open(url, '_blank');
+      const url = safeUrl(lsGet(SHEET_URL_KEY) || DEFAULT_SHEET_URL);
+      if (!url) {
+        openSheetPanel();
+        showToast("Renseigne d'abord l'URL de ta Google Sheet.");
+        return;
+      }
+      window.open(url, '_blank', 'noopener');
     }
 
     $('sheetOpenBtn').addEventListener('click', handleOpenSheet);
@@ -1851,8 +1845,9 @@ Donne-moi :
     });
 
     $('openSheetCfgBtn').addEventListener('click', () => {
-      const url = $('cfgSheetUrl').value.trim() || lsGet(SHEET_URL_KEY) || DEFAULT_SHEET_URL;
-      window.open(url, '_blank');
+      const url = safeUrl($('cfgSheetUrl').value.trim() || lsGet(SHEET_URL_KEY) || DEFAULT_SHEET_URL);
+      if (!url) { showToast("Renseigne d'abord une URL valide."); return; }
+      window.open(url, '_blank', 'noopener');
     });
 
     $('closeSheetCfgBtn').addEventListener('click', () => {
@@ -1908,51 +1903,13 @@ Donne-moi :
       return lines;
     }
 
-    /**
-     * Fetches entries directly from a published or shared Google Sheet via GVIZ CSV export.
-     * Why: Replaces manual copy-pasting by fetching sheet data automatically into local storage.
-     * @param {string} [customUrl] - Optional URL override
+    /*
+     * La lecture réseau de la Google Sheet (export CSV via /gviz/tq) a été retirée :
+     * elle imposait de publier la feuille sur le web, rendant les notes d'entretien et les
+     * coordonnées des recruteurs lisibles par quiconque connaît l'URL. Le même aller-retour
+     * se fait désormais hors ligne, feuille privée : Fichier > Télécharger > CSV, puis
+     * « 📂 Importer (JSON / CSV) », qui passe par rowsToEntries() ci-dessous.
      */
-    async function fetchGoogleSheetData(customUrl) {
-      const targetUrl = customUrl || lsGet(SHEET_URL_KEY) || DEFAULT_SHEET_URL;
-      
-      const idMatch = targetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-      if (!idMatch) {
-        showToast("URL Google Sheet invalide.");
-        openSheetPanel();
-        return;
-      }
-      const spreadsheetId = idMatch[1];
-      const gidMatch = targetUrl.match(/gid=([0-9]+)/);
-      const gid = gidMatch ? gidMatch[1] : '0';
-
-      const csvExportUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
-      showToast("Chargement de la Google Sheet...");
-
-      try {
-        const res = await fetch(csvExportUrl);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const csvText = await res.text();
-        
-        const rows = parseCSV(csvText);
-        if (rows.length < 2) {
-          showToast("Aucune donnée trouvée dans la feuille.");
-          return;
-        }
-
-        const importedEntries = rowsToEntries(rows);
-
-        if (importedEntries.length > 0) {
-          const added = mergeEntries(importedEntries, 'la Google Sheet');
-          if (added !== null) showToast(`${added} nouvelle${added > 1 ? 's' : ''} candidature${added > 1 ? 's' : ''} ajoutée${added > 1 ? 's' : ''} depuis Google Sheet.`);
-        } else {
-          showToast("Aucune candidature valide n'a pu être extraite.");
-        }
-      } catch (err) {
-        console.error(err);
-        showToast("Erreur d'accès à la Sheet (vérifiez qu'elle est partagée).");
-      }
-    }
 
     /**
      * Maps spreadsheet rows (header row first) onto candidature entries.
@@ -2065,9 +2022,6 @@ Donne-moi :
       render();
       return fresh.length;
     }
-
-    $('fetchSheetDataBtn').addEventListener('click', () => fetchGoogleSheetData());
-    $('fetchSheetCfgBtn').addEventListener('click', () => fetchGoogleSheetData());
 
     // SAUVEGARDE ET RESTAURATION DU SUIVI
     $('exportEntriesBtn').addEventListener('click', () => {
@@ -2425,8 +2379,8 @@ Bien cordialement,
         .replace(/{lien}/g, lien)
         .replace(/{argumentsLettre}/g, argsStr)
         .replace(/{motsCles}/g, kwStr)
-        .replace(/{dateEnvoi}/g, dateEnvoi)
-        .replace(/{dateRelance}/g, dateRelance)
+        .replace(/{dateEnvoi}/g, formatDateFr(dateEnvoi))
+        .replace(/{dateRelance}/g, formatDateFr(dateRelance))
         .replace(/{nom}/g, profil.nom || '')
         .replace(/{telephone}/g, profil.telephone || '')
         .replace(/{email}/g, profil.email || '')
@@ -2441,6 +2395,7 @@ Bien cordialement,
       if (missing.length) warnings.push(`Profil incomplet (${missing.join(', ')}) — clique sur « 👤 Profil ».`);
       if (!currentDocEntry.contact) warnings.push('Pas de nom de contact : la lettre commencera par une formule impersonnelle.');
       if (currentDocTab !== 'lettre' && !currentDocEntry.contactEmail) warnings.push("Pas d'email de contact : le mail s'ouvrira sans destinataire.");
+      if (currentDocTab === 'mailRelance' && !currentDocEntry.dateEnvoi) warnings.push("Cette candidature n'a jamais été marquée comme envoyée : la date affichée est celle d'aujourd'hui. Corrige-la avant d'envoyer une relance.");
       if (/\{[a-zA-Z]+\}/.test(compiled)) warnings.push('Il reste des variables non remplacées dans le texte — relis avant envoi.');
       $('docGenWarning').textContent = warnings.join(' ');
     }
@@ -2468,7 +2423,19 @@ Bien cordialement,
       if (!to && !confirm("Aucun email de contact n'est renseigné pour ce dossier.\n\nOuvrir quand même le client mail avec un destinataire vide ?")) {
         return;
       }
-      const mailtoUrl = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      // L'arobase est encodée en %40 par encodeURIComponent ; certains clients mail
+      // (Outlook notamment) ne la décodent pas et affichent une adresse invalide.
+      const encodedTo = encodeURIComponent(to).replace(/%40/g, '@');
+      const mailtoUrl = `mailto:${encodedTo}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+      // Au-delà d'environ 2000 caractères, l'URL est tronquée en silence par plusieurs clients.
+      if (mailtoUrl.length > 1900 && !confirm(
+        "Ce texte est long : ton client mail risque de le tronquer sans prévenir.\n\n"
+        + "Mieux vaut cliquer « 📋 Copier le texte » et coller dans un mail vierge.\n\n"
+        + "Ouvrir quand même le client mail ?")) {
+        return;
+      }
+
       // location.href plutôt que window.open : un mailto: dans un nouvel onglet laisse une fenêtre blanche.
       window.location.href = mailtoUrl;
     });
@@ -2526,18 +2493,12 @@ Bien cordialement,
     });
 
     $('sendSheetBtn').addEventListener('click', () => {
-      const url = lsGet(SHEET_URL_KEY);
-      if (!url) {
-        openSheetPanel();
-        showToast('Configurez votre Google Sheet pour la synchro');
-        return;
-      }
-      showToast('Copié dans le presse-papier pour synchro');
       $('copyAllBtn').click();
+      showToast('Copié — colle dans la cellule A1 de ta feuille (Ctrl+V).');
     });
 
     $('copyAllBtn').addEventListener('click', () => {
-      // Colonnes alignées sur ce que sait relire fetchGoogleSheetData : l'aller-retour Sheets est réversible.
+      // Colonnes alignées sur ce que sait relire rowsToEntries : l'aller-retour Sheets est réversible.
       const header = ['Studio', 'Poste', 'Reel', 'Priorité', 'Mots-clés', 'À mettre en avant', 'Statut',
         'Date Envoi', 'Relance', 'Date Réponse', 'Date Entretien', 'Notes', 'Lien', 'Contact', 'Email contact'].join('\t');
       const clean = (v) => (v || '').toString().replace(/[\t\r\n]+/g, ' ');
