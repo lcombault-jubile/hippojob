@@ -1179,14 +1179,14 @@
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           <span class="count" id="countLabel">0 dossier</span>
           <button class="btn-ghost btn-small" id="exportEntriesBtn" title="Sauvegarde complète du suivi">💾 Sauvegarder (JSON)</button>
-          <button class="btn-ghost btn-small" id="importEntriesBtn">📂 Restaurer une sauvegarde</button>
+          <button class="btn-ghost btn-small" id="importEntriesBtn" title="Sauvegarde JSON, ou CSV téléchargé depuis Google Sheets">📂 Importer (JSON / CSV)</button>
           <button class="btn-primary btn-small" id="fetchSheetDataBtn" style="background: var(--amber); color: #16161a;">📥 Charger depuis Google Sheet</button>
           <button class="btn-ghost btn-small" id="loadSheetBtn">🔗 Ouvrir Google Sheet</button>
           <button class="btn-ghost btn-small" id="sendSheetBtn">☁️ Copier pour Sheet</button>
           <button class="btn-ghost btn-small" id="copyAllBtn">Copier tout (Sheets / Notion)</button>
         </div>
       </div>
-      <input type="file" id="importEntriesFile" accept=".json" style="display:none">
+      <input type="file" id="importEntriesFile" accept=".json,.csv,.tsv" style="display:none">
       <p class="hint" style="margin-top:-4px;">Colle directement dans une vue "Tableau" Notion ou Google Sheets.
         <b>Sauvegarde le JSON régulièrement</b> : les données ne vivent que dans ce navigateur.</p>
 
@@ -1940,6 +1940,29 @@ Donne-moi :
           return;
         }
 
+        const importedEntries = rowsToEntries(rows);
+
+        if (importedEntries.length > 0) {
+          const added = mergeEntries(importedEntries, 'la Google Sheet');
+          if (added !== null) showToast(`${added} nouvelle${added > 1 ? 's' : ''} candidature${added > 1 ? 's' : ''} ajoutée${added > 1 ? 's' : ''} depuis Google Sheet.`);
+        } else {
+          showToast("Aucune candidature valide n'a pu être extraite.");
+        }
+      } catch (err) {
+        console.error(err);
+        showToast("Erreur d'accès à la Sheet (vérifiez qu'elle est partagée).");
+      }
+    }
+
+    /**
+     * Maps spreadsheet rows (header row first) onto candidature entries.
+     * Why: shared by the live Google Sheet fetch and by the offline CSV file import, so a
+     * private sheet downloaded as CSV round-trips exactly like a published one.
+     * @param {string[][]} rows - Parsed rows, first row being the header
+     * @returns {Object[]} Entries ready to be merged
+     */
+    function rowsToEntries(rows) {
+      {
         const headers = rows[0].map(h => h.toLowerCase().trim());
         const getIdx = (candidates) => headers.findIndex(h => candidates.some(c => h.includes(c)));
 
@@ -1956,7 +1979,11 @@ Donne-moi :
         const idxDateEntretien = getIdx(['entretien', 'date entretien']);
         const idxNotes = getIdx(['notes', 'remarques', 'commentaire']);
         const idxLien = getIdx(['lien', 'url', 'annonce']);
-        const idxContact = getIdx(['contact', 'recruteur', 'email']);
+        // Deux colonnes distinctes : « Contact » (nom) et « Email contact ». Sans l'exclusion
+        // explicite d'« email », la colonne nom capterait les deux et l'adresse serait perdue.
+        const idxContactEmail = headers.findIndex(h => h.includes('email') || h.includes('mail'));
+        const idxContact = headers.findIndex((h, i) => i !== idxContactEmail
+          && (h.includes('contact') || h.includes('recruteur')));
 
         const importedEntries = [];
 
@@ -1983,7 +2010,9 @@ Donne-moi :
           const argumentsLettre = argsRaw ? argsRaw.split(/[,|•;\n]/).map(s => s.trim()).filter(Boolean) : [];
 
           const contactRaw = idxContact >= 0 ? (r[idxContact] || '') : '';
-          const isEmail = /@/.test(contactRaw);
+          const emailRaw = idxContactEmail >= 0 ? (r[idxContactEmail] || '') : '';
+          // Une feuille rédigée à la main peut n'avoir qu'une colonne « Contact » contenant l'adresse.
+          const isEmail = !emailRaw && /@/.test(contactRaw);
 
           importedEntries.push({
             id: uid('e'),
@@ -2001,19 +2030,11 @@ Donne-moi :
             notesEntretien: idxNotes >= 0 ? r[idxNotes] : '',
             lien: idxLien >= 0 ? r[idxLien] : '',
             contact: isEmail ? '' : contactRaw,
-            contactEmail: isEmail ? contactRaw : ''
+            contactEmail: emailRaw || (isEmail ? contactRaw : '')
           });
         }
 
-        if (importedEntries.length > 0) {
-          const added = mergeEntries(importedEntries, 'la Google Sheet');
-          if (added !== null) showToast(`${added} nouvelle${added > 1 ? 's' : ''} candidature${added > 1 ? 's' : ''} ajoutée${added > 1 ? 's' : ''} depuis Google Sheet.`);
-        } else {
-          showToast("Aucune candidature valide n'a pu être extraite.");
-        }
-      } catch (err) {
-        console.error(err);
-        showToast("Erreur d'accès à la Sheet (vérifiez qu'elle est partagée).");
+        return importedEntries;
       }
     }
 
@@ -2067,6 +2088,17 @@ Donne-moi :
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
+          // CSV/TSV : fichier téléchargé depuis une Google Sheet privée (Fichier > Télécharger).
+          if (/\.(csv|tsv)$/i.test(file.name)) {
+            const rows = parseCSV(e.target.result);
+            if (rows.length < 2) { showToast('Fichier vide ou sans ligne d\'en-tête.'); return; }
+            const incoming = rowsToEntries(rows);
+            if (incoming.length === 0) { showToast("Aucune candidature reconnue dans ce fichier."); return; }
+            const n = mergeEntries(incoming, 'ce fichier CSV');
+            if (n !== null) showToast(`${n} candidature(s) importée(s) depuis le CSV.`);
+            return;
+          }
+
           const parsed = JSON.parse(e.target.result);
           const list = Array.isArray(parsed) ? parsed : parsed.entries;
           if (!Array.isArray(list)) throw new Error('format');
