@@ -713,13 +713,14 @@
     <!-- Panneau de Configuration Google Sheet -->
     <div class="panel" id="sheetConfigPanel" style="display:none; border-color: var(--teal);">
       <h2>Lien Google Sheet</h2>
-      <p class="hint">Saisissez l'URL de votre Google Sheet de suivi des candidatures.</p>
+      <p class="hint">Saisissez l'URL de votre Google Sheet de suivi des candidatures. Vous pouvez importer directement ses données ci-dessous.</p>
       <div class="field">
         <label for="cfgSheetUrl">URL de la Google Sheet</label>
         <input type="text" id="cfgSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/1FPaCN3TvYL7J9WjBaaNRZjD37uzBQ-SzsvvGjwdLt9U/edit?gid=0#gid=0">
       </div>
       <div class="action-row">
         <button class="btn-primary" id="saveSheetCfgBtn">Enregistrer</button>
+        <button class="btn-primary" id="fetchSheetCfgBtn" style="background: var(--amber); color: #16161a;">📥 Charger les données maintenant</button>
         <button class="btn-ghost" id="openSheetCfgBtn">Ouvrir la feuille ↗</button>
         <button class="btn-ghost" id="closeSheetCfgBtn">Fermer</button>
       </div>
@@ -728,7 +729,34 @@
     <!-- Panneau de Configuration des Modèles de Textes -->
     <div class="panel" id="templateConfigPanel" style="display:none; border-color: var(--teal);">
       <h2>Éditeur de Modèles (Lettre & Mails)</h2>
-      <p class="hint">Modifiez ici les modèles utilisés pour générer vos lettres et emails. Variables disponibles : <code>{studio}</code>, <code>{poste}</code>, <code>{reel}</code>, <code>{argumentsLettre}</code>, <code>{dateEnvoi}</code>.</p>
+      <p class="hint">Modifiez ici les modèles utilisés pour générer vos lettres et emails. Cliquez sur une variable ci-dessous pour l'insérer dans l'éditeur activement sélectionné.</p>
+      
+      <div class="field">
+        <label for="tplPresetSelect">Charger un modèle prédéfini</label>
+        <select id="tplPresetSelect">
+          <option value="">-- Choisir un profil de modèle --</option>
+          <option value="classique">Profil 1 : Classique (Rubika & Lead Rigger/Anim)</option>
+          <option value="rigging">Profil 2 : Focus Technique & Rigging Pipeline</option>
+          <option value="animation">Profil 3 : Focus Créatif & Animation 3D</option>
+          <option value="court">Profil 4 : Email Direct & Synthétique</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Variables d'insertion rapide</label>
+        <div class="tag-row" id="tplVarInsertRow">
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{studio}">{studio}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{poste}">{poste}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{reel}">{reel}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{argumentsLettre}">{argumentsLettre}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{motsCles}">{motsCles}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{contact}">{contact}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{lien}">{lien}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{dateEnvoi}">{dateEnvoi}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{dateRelance}">{dateRelance}</button>
+        </div>
+      </div>
+
       <div class="field">
         <label for="cfgTplLettre">Modèle de Lettre de Motivation</label>
         <textarea id="cfgTplLettre" style="min-height: 180px;"></textarea>
@@ -759,6 +787,19 @@
         </div>
       </div>
       <p class="hint" style="margin-top:8px;">Le texte ci-dessous est personnalisé avec les données de l'offre et reste 100% éditable avant export.</p>
+      
+      <div class="field" style="margin-bottom:8px;">
+        <div class="tag-row">
+          <span style="font-size:0.75rem; color:var(--muted); align-self:center; font-family:'IBM Plex Mono',monospace;">Insérer variable :</span>
+          <button class="btn-ghost btn-small gen-var-btn" data-var="{studio}">{studio}</button>
+          <button class="btn-ghost btn-small gen-var-btn" data-var="{poste}">{poste}</button>
+          <button class="btn-ghost btn-small gen-var-btn" data-var="{argumentsLettre}">{argumentsLettre}</button>
+          <button class="btn-ghost btn-small gen-var-btn" data-var="{motsCles}">{motsCles}</button>
+          <button class="btn-ghost btn-small gen-var-btn" data-var="{contact}">{contact}</button>
+          <button class="btn-ghost btn-small gen-var-btn" data-var="{lien}">{lien}</button>
+        </div>
+      </div>
+
       <div class="field">
         <textarea id="genDocText" style="min-height: 260px; font-family: inherit; font-size: 0.9rem; line-height: 1.6;"></textarea>
       </div>
@@ -789,16 +830,17 @@
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
           <button class="btn-ghost btn-small" id="openAllVeilleBtn">Ouvrir tous les onglets</button>
           <button class="btn-ghost btn-small" id="exportVeilleBtn">📤 Exporter JSON</button>
-          <button class="btn-ghost btn-small" id="importVeilleBtn">📥 Importer JSON</button>
+          <button class="btn-ghost btn-small" id="exportVeilleCsvBtn">📤 Exporter CSV</button>
+          <button class="btn-ghost btn-small" id="importVeilleBtn">📥 Importer JSON/CSV</button>
           <button class="btn-ghost btn-small" id="resetVeilleBtn" style="color: var(--amber);">↺ Réinitialiser</button>
         </div>
       </div>
-      <input type="file" id="importVeilleFile" accept=".json" style="display:none">
+      <input type="file" id="importVeilleFile" accept=".json,.csv" style="display:none">
       <p class="hint">Recherches déjà filtrées — un clic ouvre les dernières offres sur chaque site.</p>
 
       <div id="veilleGroups"></div>
 
-      <h3 class="form-subhead">Ajouter un lien</h3>
+      <h3 class="form-subhead">Ajouter un lien de veille</h3>
       <div class="row2" style="align-items:end;">
         <div class="field" style="margin-bottom:0;">
           <label for="veilleNom">Libellé</label>
@@ -811,14 +853,18 @@
       </div>
       <div class="row2" style="margin-top:14px;">
         <div class="field" style="margin-bottom:0;">
-          <label for="veilleGroupe">Groupe</label>
-          <input type="text" id="veilleGroupe" list="veilleGroupList" placeholder="Ex. France, International...">
-          <datalist id="veilleGroupList"></datalist>
+          <label for="veilleCat">Catégorie</label>
+          <input type="text" id="veilleCat" list="veilleCatList" placeholder="Ex. Jobboard, Réseau, Plateforme...">
+          <datalist id="veilleCatList"></datalist>
         </div>
         <div class="field" style="margin-bottom:0;">
-          <label>&nbsp;</label>
-          <button class="btn-primary" id="addVeilleBtn" style="width:100%">Ajouter le lien</button>
+          <label for="veilleGroupe">Rubrique / Groupe</label>
+          <input type="text" id="veilleGroupe" list="veilleGroupList" placeholder="Ex. France, International, VFX...">
+          <datalist id="veilleGroupList"></datalist>
         </div>
+      </div>
+      <div style="margin-top:14px;">
+        <button class="btn-primary" id="addVeilleBtn" style="width:100%">Ajouter le lien de veille</button>
       </div>
       <div class="status-line" id="veilleStatus"></div>
     </div>
@@ -829,12 +875,13 @@
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
           <button class="btn-ghost btn-small" id="openAllStudiosBtn">Ouvrir tous les onglets</button>
           <button class="btn-ghost btn-small" id="exportStudiosBtn">📤 Exporter JSON</button>
-          <button class="btn-ghost btn-small" id="importStudiosBtn">📥 Importer JSON</button>
+          <button class="btn-ghost btn-small" id="exportStudiosCsvBtn">📤 Exporter CSV</button>
+          <button class="btn-ghost btn-small" id="importStudiosBtn">📥 Importer JSON/CSV</button>
           <button class="btn-ghost btn-small" id="resetStudiosBtn" style="color: var(--amber);">↺ Réinitialiser</button>
         </div>
       </div>
-      <input type="file" id="importStudiosFile" accept=".json" style="display:none">
-      <p class="hint">Regroupés par catégorie.</p>
+      <input type="file" id="importStudiosFile" accept=".json,.csv" style="display:none">
+      <p class="hint">Regroupés par catégorie et rubrique.</p>
 
       <div id="studioGroups"></div>
 
@@ -856,9 +903,13 @@
           <datalist id="categoryList"></datalist>
         </div>
         <div class="field" style="margin-bottom:0;">
-          <label>&nbsp;</label>
-          <button class="btn-primary" id="addStudioBtn" style="width:100%">Ajouter le studio</button>
+          <label for="studioGroupe">Rubrique / Groupe</label>
+          <input type="text" id="studioGroupe" list="studioRubriqueList" placeholder="Ex. France, International, Cinema...">
+          <datalist id="studioRubriqueList"></datalist>
         </div>
+      </div>
+      <div style="margin-top:14px;">
+        <button class="btn-primary" id="addStudioBtn" style="width:100%">Ajouter le studio</button>
       </div>
       <div class="status-line" id="studioStatus"></div>
     </div>
@@ -949,10 +1000,11 @@
     <div class="panel anchor-section" id="section-suivi">
       <div class="table-head">
         <h2 style="margin:0;">Tableau de suivi</h2>
-        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           <span class="count" id="countLabel">0 dossier</span>
+          <button class="btn-primary btn-small" id="fetchSheetDataBtn" style="background: var(--amber); color: #16161a;">📥 Charger depuis Google Sheet</button>
           <button class="btn-ghost btn-small" id="loadSheetBtn">🔗 Ouvrir Google Sheet</button>
-          <button class="btn-ghost btn-small" id="sendSheetBtn">☁️ Synchro Google Sheet</button>
+          <button class="btn-ghost btn-small" id="sendSheetBtn">☁️ Copier pour Sheet</button>
           <button class="btn-ghost btn-small" id="copyAllBtn">Copier tout (Sheets / Notion)</button>
         </div>
       </div>
@@ -1128,7 +1180,19 @@
       });
     }
 
+    /**
+     * Copies text to the system clipboard securely.
+     * Why: Provides a quick one-click mechanism to copy lines for Notion/Sheets sync.
+     * @param {string} text - Plain text to copy
+     */
     function copyToClipboard(text) { navigator.clipboard?.writeText(text).catch(() => { }); }
+
+    /**
+     * Escapes raw HTML strings to prevent XSS.
+     * Why: Safely renders user-generated content inside DOM elements.
+     * @param {string} str - Unescaped raw string
+     * @returns {string} HTML-escaped string
+     */
     function escapeHtml(str) {
       const d = document.createElement('div');
       d.textContent = str ?? '';
@@ -1178,8 +1242,13 @@
       showToast('Clés API enregistrées !');
     });
 
-    // GESTION DU PANNEAU GOOGLE SHEET
+    // GESTION ET CHARGEMENT DYNAMIQUE GOOGLE SHEET
     const SHEET_URL_KEY = 'google-sheet-url';
+
+    /**
+     * Opens the Google Sheet configuration modal panel.
+     * Why: Allows users to view, update, and test their Google Sheet link.
+     */
     function openSheetPanel() {
       const panel = $('sheetConfigPanel');
       $('cfgSheetUrl').value = localStorage.getItem(SHEET_URL_KEY) || DEFAULT_SHEET_URL;
@@ -1188,6 +1257,10 @@
 
     $('sheetEditBtn').addEventListener('click', openSheetPanel);
 
+    /**
+     * Opens the Google Sheet in a new browser tab.
+     * Why: Gives direct access to the live cloud sheet.
+     */
     function handleOpenSheet() {
       const url = localStorage.getItem(SHEET_URL_KEY) || DEFAULT_SHEET_URL;
       window.open(url, '_blank');
@@ -1212,6 +1285,160 @@
       $('sheetConfigPanel').style.display = 'none';
     });
 
+    /**
+     * Robust CSV parser supporting quotes, commas, tabs, and multiline values.
+     * Why: Standardizes parsing across Google Sheet CSV exports and uploaded CSV files.
+     * @param {string} text - Raw CSV text string
+     * @param {string} delimiter - Delimiter character (comma or tab)
+     * @returns {string[][]} Array of row arrays
+     */
+    function parseCSV(text, delimiter = ',') {
+      const lines = [];
+      let row = [];
+      let field = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        const next = text[i + 1];
+
+        if (c === '"') {
+          if (inQuotes && next === '"') {
+            field += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if ((c === delimiter || c === '\t') && !inQuotes) {
+          row.push(field.trim());
+          field = '';
+        } else if ((c === '\r' || c === '\n') && !inQuotes) {
+          if (c === '\r' && next === '\n') i++;
+          row.push(field.trim());
+          if (row.some(cell => cell.length > 0)) lines.push(row);
+          row = [];
+          field = '';
+        } else {
+          field += c;
+        }
+      }
+      if (field || row.length > 0) {
+        row.push(field.trim());
+        if (row.some(cell => cell.length > 0)) lines.push(row);
+      }
+      return lines;
+    }
+
+    /**
+     * Fetches entries directly from a published or shared Google Sheet via GVIZ CSV export.
+     * Why: Replaces manual copy-pasting by fetching sheet data automatically into local storage.
+     * @param {string} [customUrl] - Optional URL override
+     */
+    async function fetchGoogleSheetData(customUrl) {
+      const targetUrl = customUrl || localStorage.getItem(SHEET_URL_KEY) || DEFAULT_SHEET_URL;
+      
+      const idMatch = targetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+      if (!idMatch) {
+        showToast("URL Google Sheet invalide.");
+        openSheetPanel();
+        return;
+      }
+      const spreadsheetId = idMatch[1];
+      const gidMatch = targetUrl.match(/gid=([0-9]+)/);
+      const gid = gidMatch ? gidMatch[1] : '0';
+
+      const csvExportUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
+      showToast("Chargement de la Google Sheet...");
+
+      try {
+        const res = await fetch(csvExportUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const csvText = await res.text();
+        
+        const rows = parseCSV(csvText);
+        if (rows.length < 2) {
+          showToast("Aucune donnée trouvée dans la feuille.");
+          return;
+        }
+
+        const headers = rows[0].map(h => h.toLowerCase().trim());
+        const getIdx = (candidates) => headers.findIndex(h => candidates.some(c => h.includes(c)));
+
+        const idxStudio = getIdx(['studio', 'entreprise', 'societe']);
+        const idxPoste = getIdx(['poste', 'intitule', 'job', 'role']);
+        const idxReel = getIdx(['reel', 'demo']);
+        const idxPriorite = getIdx(['priorite', 'prio']);
+        const idxMotsCles = getIdx(['mots', 'keywords', 'tags']);
+        const idxArguments = getIdx(['argument', 'avant', 'points']);
+        const idxStatut = getIdx(['statut', 'etat']);
+        const idxDateEnvoi = getIdx(['envoi', 'date envoi', 'envoye']);
+        const idxRelance = getIdx(['relance']);
+        const idxDateReponse = getIdx(['reponse', 'date reponse']);
+        const idxDateEntretien = getIdx(['entretien', 'date entretien']);
+        const idxNotes = getIdx(['notes', 'remarques', 'commentaire']);
+        const idxLien = getIdx(['lien', 'url', 'annonce']);
+        const idxContact = getIdx(['contact', 'recruteur', 'email']);
+
+        const importedEntries = [];
+
+        for (let i = 1; i < rows.length; i++) {
+          const r = rows[i];
+          if (!r || r.length === 0) continue;
+
+          const studio = idxStudio >= 0 ? r[idxStudio] : r[0];
+          const poste = idxPoste >= 0 ? r[idxPoste] : r[1];
+          if (!studio && !poste) continue;
+
+          const reelRaw = idxReel >= 0 ? r[idxReel] : '';
+          const reel = reelRaw.toLowerCase().includes('rig') ? 'Rigging' : 'Animation';
+
+          const prioRaw = idxPriorite >= 0 ? r[idxPriorite] : '';
+          let priorite = 'Moyenne';
+          if (prioRaw.toLowerCase().includes('haut')) priorite = 'Haute';
+          if (prioRaw.toLowerCase().includes('bass')) priorite = 'Basse';
+
+          const motsClesRaw = idxMotsCles >= 0 ? r[idxMotsCles] : '';
+          const motsCles = motsClesRaw ? motsClesRaw.split(/[,|•;\n]/).map(s => s.trim()).filter(Boolean) : [];
+
+          const argsRaw = idxArguments >= 0 ? r[idxArguments] : '';
+          const argumentsLettre = argsRaw ? argsRaw.split(/[,|•;\n]/).map(s => s.trim()).filter(Boolean) : [];
+
+          importedEntries.push({
+            id: 'e' + Date.now() + Math.random().toString(36).substr(2, 4),
+            studio: studio || 'Studio non spécifié',
+            poste: poste || 'Poste non spécifié',
+            reel: reel,
+            priorite: priorite,
+            motsCles: motsCles,
+            argumentsLettre: argumentsLettre,
+            statut: (idxStatut >= 0 && r[idxStatut]) ? r[idxStatut] : 'À traiter',
+            dateEnvoi: idxDateEnvoi >= 0 ? r[idxDateEnvoi] : '',
+            relance: idxRelance >= 0 ? r[idxRelance] : '',
+            dateReponse: idxDateReponse >= 0 ? r[idxDateReponse] : '',
+            dateEntretien: idxDateEntretien >= 0 ? r[idxDateEntretien] : '',
+            notesEntretien: idxNotes >= 0 ? r[idxNotes] : '',
+            lien: idxLien >= 0 ? r[idxLien] : '',
+            contact: idxContact >= 0 ? r[idxContact] : ''
+          });
+        }
+
+        if (importedEntries.length > 0) {
+          entries = importedEntries;
+          saveEntries();
+          render();
+          showToast(`${importedEntries.length} candidatures chargées depuis Google Sheet !`);
+        } else {
+          showToast("Aucune candidature valide n'a pu être extraite.");
+        }
+      } catch (err) {
+        console.error(err);
+        showToast("Erreur d'accès à la Sheet (vérifiez qu'elle est partagée).");
+      }
+    }
+
+    $('fetchSheetDataBtn').addEventListener('click', () => fetchGoogleSheetData());
+    $('fetchSheetCfgBtn').addEventListener('click', () => fetchGoogleSheetData());
+
     // GESTION DES MODÈLES ET DU GÉNÉRATEUR DE DOCUMENTS
     const TPL_LETTRE_KEY = 'tpl-lettre';
     const TPL_MAIL_ENVOI_KEY = 'tpl-mail-envoi';
@@ -1219,7 +1446,7 @@
 
     const DEFAULT_TPL_LETTRE = `Objet : Candidature {poste} – Hippolyte Combault
 
-Bonjour,
+Bonjour {contact},
 
 Fraîchement diplômé de Rubika, je suis depuis longtemps le travail de {studio} et j'ai beaucoup d'admiration pour vos projets. Je vous écris aujourd'hui car je suis très motivé par votre offre de poste de {poste}.
 
@@ -1241,12 +1468,14 @@ https://hippolytecombault.com (Portfolio & Reel)`;
 
     const DEFAULT_TPL_MAIL_ENVOI = `Objet : Candidature {poste} - Hippolyte Combault
 
-Bonjour,
+Bonjour {contact},
 
 Veuillez trouver ci-joint ma candidature pour le poste de {poste} au sein de {studio}.
 
 Passionné par l'animation 3D et le rigging (diplômé de Rubika), vous trouverez ma lettre de motivation et mon portfolio/demo reel ci-dessous :
 🔗 Portfolio & Reel : https://hippolytecombault.com
+
+{argumentsLettre}
 
 Je reste à votre disposition pour échanger de vive voix.
 
@@ -1255,7 +1484,7 @@ Hippolyte Combault`;
 
     const DEFAULT_TPL_MAIL_RELANCE = `Objet : Relance - Candidature {poste} - Hippolyte Combault
 
-Bonjour,
+Bonjour {contact},
 
 Je me permets de revenir vers vous concernant ma candidature transmise le {dateEnvoi} pour le poste de {poste} au sein de {studio}.
 
@@ -1266,12 +1495,156 @@ En vous remerciant par avance pour votre attention,
 Bien cordialement,
 Hippolyte Combault`;
 
+    const PRESETS = {
+      classique: {
+        lettre: DEFAULT_TPL_LETTRE,
+        envoi: DEFAULT_TPL_MAIL_ENVOI,
+        relance: DEFAULT_TPL_MAIL_RELANCE
+      },
+      rigging: {
+        lettre: `Objet : Candidature {poste} (Lead Rigger / TD Rig) – Hippolyte Combault
+
+Bonjour {contact},
+
+Spécialiste du rigging 3D diplômé de Rubika, je souhaite proposer ma candidature pour le poste de {poste} au sein de {studio}.
+
+Fort d'une solide expérience sur Maya et Python (création d'auto-rigs, de modules de skel/skin et d'outils pipeline), j'ai dirigé le département rigging sur le court-métrage Icefall. Ma double compétence en animation me permet de concevoir des setups intuitifs et solides, facilitant le travail quotidien des anims.
+
+{argumentsLettre}
+
+{motsCles}
+
+Disponible immédiatement en présentiel ou hybride, je serais ravi d'échanger sur l'intégration de mon profil dans vos productions.
+
+Cordialement,
+Hippolyte Combault
+06 00 00 00 00
+https://hippolytecombault.com`,
+        envoi: `Objet : Candidature {poste} - Rigging & Pipeline - Hippolyte Combault
+
+Bonjour {contact},
+
+Veuillez trouver ci-joint ma candidature pour le poste de {poste} chez {studio}.
+
+Rigger 3D issu de Rubika, je développe des setups réactifs et optimisés pour les besoins de la production :
+🔗 Demo Reel & Portfolio : https://hippolytecombault.com
+
+{argumentsLettre}
+
+Au plaisir d'échanger prochainement,
+Hippolyte Combault`,
+        relance: DEFAULT_TPL_MAIL_RELANCE
+      },
+      animation: {
+        lettre: `Objet : Candidature {poste} (Animateur 3D) – Hippolyte Combault
+
+Bonjour {contact},
+
+Passionné par le acting, le body mechanics et la mise en scène 3D, je pose avec enthousiasme ma candidature pour le poste de {poste} au sein de {studio}.
+
+Diplômé de Rubika, j'ai exercé comme Lead Animateur sur le film Icefall. Ma maîtrise du rigging m'offre une très grande autonomie technique pour résoudre les problèmes d'anatomie ou d'interpenetration directement en cours de shot.
+
+{argumentsLettre}
+
+Je me tiens à votre entière disposition pour vous présenter mon Demo Reel et échanger sur vos futurs projets.
+
+Bien à vous,
+Hippolyte Combault
+https://hippolytecombault.com`,
+        envoi: `Objet : Candidature {poste} - Animation 3D - Hippolyte Combault
+
+Bonjour {contact},
+
+Je vous adresse ma candidature pour le poste de {poste} au sein de {studio}.
+
+Voici le lien direct vers mon Demo Reel d'animation :
+🔗 https://hippolytecombault.com
+
+{argumentsLettre}
+
+Bien cordialement,
+Hippolyte Combault`,
+        relance: DEFAULT_TPL_MAIL_RELANCE
+      },
+      court: {
+        lettre: `Objet : Candidature {poste} – Hippolyte Combault
+
+Bonjour {contact},
+
+Diplômé de Rubika (Animation 3D / Rigging), je réponds à votre offre pour le poste de {poste} chez {studio}.
+
+Atouts clés :
+{argumentsLettre}
+
+Reel & Portfolio : https://hippolytecombault.com
+
+Restant à votre entière disposition pour un entretien.
+
+Cordialement,
+Hippolyte Combault`,
+        envoi: `Objet : Candidature {poste} – Hippolyte Combault
+
+Bonjour {contact},
+
+Candidature pour le poste de {poste} au sein de {studio}.
+
+🔗 Reel & Portfolio : https://hippolytecombault.com
+
+{argumentsLettre}
+
+Bien cordialement,
+Hippolyte Combault`,
+        relance: DEFAULT_TPL_MAIL_RELANCE
+      }
+    };
+
+    let activeTplTextarea = null;
+
     $('templateConfigBtn').addEventListener('click', () => {
       const panel = $('templateConfigPanel');
       $('cfgTplLettre').value = localStorage.getItem(TPL_LETTRE_KEY) || DEFAULT_TPL_LETTRE;
       $('cfgTplMailEnvoi').value = localStorage.getItem(TPL_MAIL_ENVOI_KEY) || DEFAULT_TPL_MAIL_ENVOI;
       $('cfgTplMailRelance').value = localStorage.getItem(TPL_MAIL_RELANCE_KEY) || DEFAULT_TPL_MAIL_RELANCE;
       panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      activeTplTextarea = $('cfgTplLettre');
+    });
+
+    ['cfgTplLettre', 'cfgTplMailEnvoi', 'cfgTplMailRelance'].forEach(id => {
+      $(id).addEventListener('focus', () => { activeTplTextarea = $(id); });
+    });
+
+    $('tplPresetSelect').addEventListener('change', (ev) => {
+      const key = ev.target.value;
+      if (key && PRESETS[key]) {
+        $('cfgTplLettre').value = PRESETS[key].lettre;
+        $('cfgTplMailEnvoi').value = PRESETS[key].envoi;
+        $('cfgTplMailRelance').value = PRESETS[key].relance;
+        showToast(`Profil '${key}' appliqué aux modèles !`);
+      }
+    });
+
+    document.querySelectorAll('.tpl-var-btn').forEach(btn => {
+      btn.addEventListener('click', (ev) => {
+        const v = ev.target.dataset.var;
+        const target = activeTplTextarea || $('cfgTplLettre');
+        const start = target.selectionStart || target.value.length;
+        const end = target.selectionEnd || target.value.length;
+        target.value = target.value.substring(0, start) + v + target.value.substring(end);
+        target.focus();
+        target.selectionStart = target.selectionEnd = start + v.length;
+      });
+    });
+
+    document.querySelectorAll('.gen-var-btn').forEach(btn => {
+      btn.addEventListener('click', (ev) => {
+        const v = ev.target.dataset.var;
+        const target = $('genDocText');
+        const start = target.selectionStart || target.value.length;
+        const end = target.selectionEnd || target.value.length;
+        target.value = target.value.substring(0, start) + v + target.value.substring(end);
+        target.focus();
+        target.selectionStart = target.selectionEnd = start + v.length;
+      });
     });
 
     $('closeTplBtn').addEventListener('click', () => {
@@ -1299,6 +1672,11 @@ Hippolyte Combault`;
     let currentDocEntry = null;
     let currentDocTab = 'lettre';
 
+    /**
+     * Opens the letter and mail generator modal for a specific job entry.
+     * Why: Pre-fills and compiles cover letters and emails dynamically.
+     * @param {Object} entry - Job candidature entry
+     */
     function openDocGenerator(entry) {
       currentDocEntry = entry;
       currentDocTab = 'lettre';
@@ -1314,16 +1692,29 @@ Hippolyte Combault`;
       $('tabBtnMailRelance').classList.toggle('active', currentDocTab === 'mailRelance');
     }
 
+    /**
+     * Compiles template variables into human-formatted text for the active document generator tab.
+     * Why: Formats list attributes (like arguments and keywords) neatly into bullet points or paragraphs.
+     */
     function renderDocText() {
       if (!currentDocEntry) return;
       const studio = currentDocEntry.studio || 'votre studio';
       const poste = currentDocEntry.poste || 'poste de création';
       const reel = currentDocEntry.reel || 'Animation / Rigging';
+      const contact = currentDocEntry.contact || 'l\'équipe de recrutement';
+      const lien = currentDocEntry.lien || '';
+      const dateEnvoi = currentDocEntry.dateEnvoi || todayISO();
+      const dateRelance = currentDocEntry.relance || plusDaysISO(7);
+
       const argsArr = currentDocEntry.argumentsLettre || [];
       const argsStr = argsArr.length > 0
-        ? `Mon profil se distingue par plusieurs atouts clés pour vos projets : ${argsArr.join(', ')}.`
+        ? argsArr.map(a => `• ${a}`).join('\n')
         : '';
-      const dateEnvoi = currentDocEntry.dateEnvoi || todayISO();
+
+      const kwArr = currentDocEntry.motsCles || [];
+      const kwStr = kwArr.length > 0
+        ? `Compétences cibles : ${kwArr.join(', ')}.`
+        : '';
 
       let tpl = '';
       if (currentDocTab === 'lettre') {
@@ -1338,8 +1729,12 @@ Hippolyte Combault`;
         .replace(/{studio}/g, studio)
         .replace(/{poste}/g, poste)
         .replace(/{reel}/g, reel)
+        .replace(/{contact}/g, contact)
+        .replace(/{lien}/g, lien)
         .replace(/{argumentsLettre}/g, argsStr)
-        .replace(/{dateEnvoi}/g, dateEnvoi);
+        .replace(/{motsCles}/g, kwStr)
+        .replace(/{dateEnvoi}/g, dateEnvoi)
+        .replace(/{dateRelance}/g, dateRelance);
 
       $('genDocText').value = compiled;
       $('docGenTitle').textContent = `Document — ${studio} (${poste})`;
@@ -1581,24 +1976,28 @@ Hippolyte Combault`;
       showToast('Ajouté au suivi');
     });
 
-    // GESTION VEILLE
+    // GESTION ET EXPORT/IMPORT LIENS (VEILLE & STUDIOS)
     const VEILLE_KEY = 'candidatures-veille';
     let veilleList = [];
     const DEFAULT_VEILLE = [
-      { id: 'v1', nom: 'LinkedIn — Animateur 3D', lien: 'https://www.linkedin.com/jobs/search-results/?keywords=Animateur%203D&location=France', groupe: 'France' },
-      { id: 'v2', nom: 'LinkedIn — Character Rigger', lien: 'https://www.linkedin.com/jobs/search-results/?keywords=Character%20Rigger&location=France', groupe: 'France' },
-      { id: 'v3', nom: 'Indeed — Animateur 3D', lien: 'https://fr.indeed.com/jobs?q=animateur+3d', groupe: 'France' },
-      { id: 'v4', nom: 'Indeed — Rigger', lien: 'https://fr.indeed.com/jobs?q=rigger', groupe: 'France' },
-      { id: 'v5', nom: "AFCA (cinéma d'animation)", lien: 'https://www.afca.asso.fr/', groupe: 'France' },
-      { id: 'v6', nom: 'LinkedIn — 3D Animator', lien: 'https://www.linkedin.com/jobs/search-results/?keywords=3D%20Animator', groupe: 'International' },
-      { id: 'v7', nom: 'LinkedIn — Character Rigger', lien: 'https://www.linkedin.com/jobs/search-results/?keywords=Character%20Rigger', groupe: 'International' },
-      { id: 'v8', nom: 'Indeed — 3D Animator', lien: 'https://www.indeed.com/jobs?q=3D+Animator', groupe: 'International' },
-      { id: 'v9', nom: 'Indeed — Character Rigger', lien: 'https://www.indeed.com/jobs?q=character+rigger', groupe: 'International' },
-      { id: 'v10', nom: 'ArtStation Jobs', lien: 'https://www.artstation.com/jobs', groupe: 'International' },
-      { id: 'v11', nom: 'Hitmarker', lien: 'https://hitmarker.net/jobs', groupe: 'International' },
-      { id: 'v12', nom: 'VES Job Board (VFX)', lien: 'https://vesglobal.org/jobboard/', groupe: 'International' }
+      { id: 'v1', nom: 'LinkedIn — Animateur 3D', lien: 'https://www.linkedin.com/jobs/search-results/?keywords=Animateur%203D&location=France', cat: 'Jobboard', groupe: 'France' },
+      { id: 'v2', nom: 'LinkedIn — Character Rigger', lien: 'https://www.linkedin.com/jobs/search-results/?keywords=Character%20Rigger&location=France', cat: 'Jobboard', groupe: 'France' },
+      { id: 'v3', nom: 'Indeed — Animateur 3D', lien: 'https://fr.indeed.com/jobs?q=animateur+3d', cat: 'Jobboard', groupe: 'France' },
+      { id: 'v4', nom: 'Indeed — Rigger', lien: 'https://fr.indeed.com/jobs?q=rigger', cat: 'Jobboard', groupe: 'France' },
+      { id: 'v5', nom: "AFCA (cinéma d'animation)", lien: 'https://www.afca.asso.fr/', cat: 'Plateforme Cinéma', groupe: 'France' },
+      { id: 'v6', nom: 'LinkedIn — 3D Animator', lien: 'https://www.linkedin.com/jobs/search-results/?keywords=3D%20Animator', cat: 'Jobboard', groupe: 'International' },
+      { id: 'v7', nom: 'LinkedIn — Character Rigger', lien: 'https://www.linkedin.com/jobs/search-results/?keywords=Character%20Rigger', cat: 'Jobboard', groupe: 'International' },
+      { id: 'v8', nom: 'Indeed — 3D Animator', lien: 'https://www.indeed.com/jobs?q=3D+Animator', cat: 'Jobboard', groupe: 'International' },
+      { id: 'v9', nom: 'Indeed — Character Rigger', lien: 'https://www.indeed.com/jobs?q=character+rigger', cat: 'Jobboard', groupe: 'International' },
+      { id: 'v10', nom: 'ArtStation Jobs', lien: 'https://www.artstation.com/jobs', cat: 'Plateforme Portfolio', groupe: 'International' },
+      { id: 'v11', nom: 'Hitmarker', lien: 'https://hitmarker.net/jobs', cat: 'Plateforme Gaming', groupe: 'International' },
+      { id: 'v12', nom: 'VES Job Board (VFX)', lien: 'https://vesglobal.org/jobboard/', cat: 'Plateforme VFX', groupe: 'International' }
     ];
 
+    /**
+     * Loads saved Veille link collection from LocalStorage.
+     * Why: Restores user custom job watch links across browser sessions.
+     */
     function loadVeille() {
       try {
         const raw = localStorage.getItem(VEILLE_KEY);
@@ -1611,23 +2010,43 @@ Hippolyte Combault`;
       try { localStorage.setItem(VEILLE_KEY, JSON.stringify(veilleList)); } catch (e) { }
     }
 
+    /**
+     * Renders Veille links in the UI grouped by Rubrique/Groupe and Catégorie.
+     * Why: Organizes search URLs into structured visual categories.
+     */
     function renderVeille() {
       const container = $('veilleGroups');
-      const datalist = $('veilleGroupList');
+      const catList = $('veilleCatList');
+      const groupList = $('veilleGroupList');
       container.innerHTML = '';
-      datalist.innerHTML = '';
+      if (catList) catList.innerHTML = '';
+      if (groupList) groupList.innerHTML = '';
 
+      const cats = new Set();
       const groups = {};
+
       veilleList.forEach(v => {
+        const c = v.cat || 'Général';
         const g = v.groupe || 'Autre';
+        cats.add(c);
         if (!groups[g]) groups[g] = [];
         groups[g].push(v);
       });
 
+      cats.forEach(c => {
+        if (catList) {
+          const opt = document.createElement('option');
+          opt.value = c;
+          catList.appendChild(opt);
+        }
+      });
+
       Object.keys(groups).forEach(g => {
-        const opt = document.createElement('option');
-        opt.value = g;
-        datalist.appendChild(opt);
+        if (groupList) {
+          const opt = document.createElement('option');
+          opt.value = g;
+          groupList.appendChild(opt);
+        }
 
         const groupDiv = document.createElement('div');
         groupDiv.className = 'studio-group';
@@ -1636,7 +2055,10 @@ Hippolyte Combault`;
           <div class="veille-grid">
             ${groups[g].map(item => `
               <div class="veille-item">
-                <a class="veille-link" href="${escapeHtml(item.lien)}" target="_blank" rel="noopener">${escapeHtml(item.nom)} ↗</a>
+                <a class="veille-link" href="${escapeHtml(item.lien)}" target="_blank" rel="noopener">
+                  ${escapeHtml(item.nom)} ↗
+                  ${item.cat ? `<span style="display:block; font-size:0.68rem; color:var(--muted); font-weight:normal; margin-top:2px;">${escapeHtml(item.cat)}</span>` : ''}
+                </a>
                 <button class="del-veille" data-id="${item.id}" title="Supprimer">×</button>
               </div>
             `).join('')}
@@ -1659,16 +2081,18 @@ Hippolyte Combault`;
     $('addVeilleBtn').addEventListener('click', () => {
       const nom = $('veilleNom').value.trim();
       const lien = $('veilleLien').value.trim();
+      const cat = $('veilleCat')?.value.trim() || 'Jobboard';
       const groupe = $('veilleGroupe').value.trim() || 'Général';
       if (!nom || !lien) {
         showToast('Veuillez remplir le nom et le lien');
         return;
       }
-      veilleList.push({ id: 'v' + Date.now(), nom, lien, groupe });
+      veilleList.push({ id: 'v' + Date.now(), nom, lien, cat, groupe });
       saveVeille();
       renderVeille();
       $('veilleNom').value = '';
       $('veilleLien').value = '';
+      if ($('veilleCat')) $('veilleCat').value = '';
       $('veilleGroupe').value = '';
       showToast('Lien de veille ajouté');
     });
@@ -1681,9 +2105,38 @@ Hippolyte Combault`;
       veilleList.forEach(v => window.open(v.lien, '_blank'));
     });
 
-    // IMPORT / EXPORT / RESET VEILLE
+    /**
+     * Downloads a JavaScript object as a JSON file.
+     * Why: Enables offline backup and data transport.
+     * @param {Object} data - Data to export
+     * @param {string} filename - Target filename
+     */
     function downloadJSON(data, filename) {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    /**
+     * Downloads an array of link objects as a CSV file.
+     * Why: Allows links to be edited in spreadsheet applications like Excel or Google Sheets.
+     * @param {Object[]} list - List of link items
+     * @param {string} filename - Target CSV filename
+     */
+    function downloadLinksCSV(list, filename) {
+      const header = ['Nom', 'Lien', 'Catégorie', 'Rubrique'];
+      const rows = list.map(item => [
+        `"${(item.nom || '').replace(/"/g, '""')}"`,
+        `"${(item.lien || '').replace(/"/g, '""')}"`,
+        `"${(item.cat || item.groupe || '').replace(/"/g, '""')}"`,
+        `"${(item.groupe || item.cat || '').replace(/"/g, '""')}"`
+      ].join(','));
+      const csvContent = [header.join(','), ...rows].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -1697,6 +2150,11 @@ Hippolyte Combault`;
       showToast('Liste de veille exportée (JSON)');
     });
 
+    $('exportVeilleCsvBtn')?.addEventListener('click', () => {
+      downloadLinksCSV(veilleList, 'hippojob_veille.csv');
+      showToast('Liste de veille exportée (CSV)');
+    });
+
     $('importVeilleBtn').addEventListener('click', () => {
       $('importVeilleFile').click();
     });
@@ -1706,15 +2164,47 @@ Hippolyte Combault`;
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (e) => {
+        const text = e.target.result;
         try {
-          const parsed = JSON.parse(e.target.result);
-          if (Array.isArray(parsed)) {
-            veilleList = parsed;
-            saveVeille();
-            renderVeille();
-            showToast('Liste de veille importée avec succès !');
+          if (file.name.endsWith('.csv')) {
+            const rows = parseCSV(text);
+            if (rows.length > 1) {
+              const imported = [];
+              for (let i = 1; i < rows.length; i++) {
+                const r = rows[i];
+                if (r[0] && r[1]) {
+                  imported.push({
+                    id: 'v' + Date.now() + i,
+                    nom: r[0],
+                    lien: r[1],
+                    cat: r[2] || 'Jobboard',
+                    groupe: r[3] || 'Général'
+                  });
+                }
+              }
+              if (imported.length > 0) {
+                veilleList = imported;
+                saveVeille();
+                renderVeille();
+                showToast('Liste de veille CSV importée avec succès !');
+              }
+            }
+          } else {
+            const parsed = JSON.parse(text);
+            if (Array.isArray(parsed)) {
+              veilleList = parsed.map(item => ({
+                id: item.id || ('v' + Date.now() + Math.random()),
+                nom: item.nom || 'Lien',
+                lien: item.lien || '',
+                cat: item.cat || item.groupe || 'Jobboard',
+                groupe: item.groupe || item.cat || 'Général'
+              }));
+              saveVeille();
+              renderVeille();
+              showToast('Liste de veille JSON importée avec succès !');
+            }
           }
-        } catch (err) { showToast('Fichier JSON invalide'); }
+        } catch (err) { showToast('Fichier invalide (JSON ou CSV requis)'); }
       };
       reader.readAsText(file);
       ev.target.value = '';
@@ -1731,17 +2221,21 @@ Hippolyte Combault`;
     const STUDIO_KEY = 'candidatures-studios';
     let studioList = [];
     const DEFAULT_STUDIOS = [
-      { id: 's1', nom: 'Ubisoft', lien: 'https://www.ubisoft.com/fr-fr/company/careers/search', cat: 'Jeu Vidéo' },
-      { id: 's2', nom: 'TeamTO', lien: 'https://www.teamto.com/recrutement/', cat: 'Animation / VFX France' },
-      { id: 's3', nom: 'Mikros Animation', lien: 'https://careers.smartrecruiters.com/RodeoFX', cat: 'Animation / VFX France' },
-      { id: 's4', nom: 'Xilam Animation', lien: 'https://xilam.com/category/offres-emploi/', cat: 'Animation / VFX France' },
-      { id: 's5', nom: 'Illumination', lien: 'https://www.illumination.com/homepage/careers/', cat: 'Animation Internationale' },
-      { id: 's6', nom: 'DreamWorks Animation', lien: 'https://www.dreamworks.com/careers', cat: 'Animation Internationale' },
-      { id: 's7', nom: 'ILM', lien: 'https://www.ilm.com/careers/', cat: 'VFX International' },
-      { id: 's8', nom: 'Framestore', lien: 'https://www.framestore.com/careers', cat: 'VFX International' },
-      { id: 's9', nom: 'Weta FX', lien: 'https://careers.wetafx.co.nz/', cat: 'VFX International' }
+      { id: 's1', nom: 'Ubisoft', lien: 'https://www.ubisoft.com/fr-fr/company/careers/search', cat: 'Jeu Vidéo', groupe: 'France' },
+      { id: 's2', nom: 'TeamTO', lien: 'https://www.teamto.com/recrutement/', cat: 'Animation / VFX France', groupe: 'France' },
+      { id: 's3', nom: 'Mikros Animation', lien: 'https://careers.smartrecruiters.com/RodeoFX', cat: 'Animation / VFX France', groupe: 'France' },
+      { id: 's4', nom: 'Xilam Animation', lien: 'https://xilam.com/category/offres-emploi/', cat: 'Animation / VFX France', groupe: 'France' },
+      { id: 's5', nom: 'Illumination', lien: 'https://www.illumination.com/homepage/careers/', cat: 'Animation Internationale', groupe: 'International' },
+      { id: 's6', nom: 'DreamWorks Animation', lien: 'https://www.dreamworks.com/careers', cat: 'Animation Internationale', groupe: 'International' },
+      { id: 's7', nom: 'ILM', lien: 'https://www.ilm.com/careers/', cat: 'VFX International', groupe: 'International' },
+      { id: 's8', nom: 'Framestore', lien: 'https://www.framestore.com/careers', cat: 'VFX International', groupe: 'International' },
+      { id: 's9', nom: 'Weta FX', lien: 'https://careers.wetafx.co.nz/', cat: 'VFX International', groupe: 'International' }
     ];
 
+    /**
+     * Loads studio list from LocalStorage.
+     * Why: Restores saved studios across sessions.
+     */
     function loadStudios() {
       try {
         const raw = localStorage.getItem(STUDIO_KEY);
@@ -1754,23 +2248,42 @@ Hippolyte Combault`;
       try { localStorage.setItem(STUDIO_KEY, JSON.stringify(studioList)); } catch (e) { }
     }
 
+    /**
+     * Renders Studio career links grouped by Catégorie and Rubrique.
+     * Why: Displays studio links cleanly with category badges.
+     */
     function renderStudios() {
       const container = $('studioGroups');
-      const datalist = $('categoryList');
+      const catList = $('categoryList');
+      const rubList = $('studioRubriqueList');
       container.innerHTML = '';
-      datalist.innerHTML = '';
+      if (catList) catList.innerHTML = '';
+      if (rubList) rubList.innerHTML = '';
 
+      const rubriques = new Set();
       const cats = {};
+
       studioList.forEach(s => {
         const c = s.cat || 'Autre';
+        if (s.groupe) rubriques.add(s.groupe);
         if (!cats[c]) cats[c] = [];
         cats[c].push(s);
       });
 
+      rubriques.forEach(r => {
+        if (rubList) {
+          const opt = document.createElement('option');
+          opt.value = r;
+          rubList.appendChild(opt);
+        }
+      });
+
       Object.keys(cats).forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c;
-        datalist.appendChild(opt);
+        if (catList) {
+          const opt = document.createElement('option');
+          opt.value = c;
+          catList.appendChild(opt);
+        }
 
         const groupDiv = document.createElement('div');
         groupDiv.className = 'studio-group';
@@ -1779,7 +2292,10 @@ Hippolyte Combault`;
           <div class="studio-chip-row">
             ${cats[c].map(item => `
               <div class="studio-chip">
-                <a href="${escapeHtml(item.lien)}" target="_blank" rel="noopener">${escapeHtml(item.nom)} ↗</a>
+                <a href="${escapeHtml(item.lien)}" target="_blank" rel="noopener">
+                  ${escapeHtml(item.nom)} ↗
+                  ${item.groupe ? `<span style="font-size:0.68rem; color:var(--muted); font-weight:normal; margin-left:4px;">(${escapeHtml(item.groupe)})</span>` : ''}
+                </a>
                 <button class="del-studio" data-id="${item.id}" title="Supprimer">×</button>
               </div>
             `).join('')}
@@ -1803,16 +2319,18 @@ Hippolyte Combault`;
       const nom = $('studioNom').value.trim();
       const lien = $('studioLien').value.trim();
       const cat = $('studioCat').value.trim() || 'Animation / VFX France';
+      const groupe = $('studioGroupe')?.value.trim() || 'France';
       if (!nom || !lien) {
         showToast('Veuillez remplir le nom du studio et son lien');
         return;
       }
-      studioList.push({ id: 's' + Date.now(), nom, lien, cat });
+      studioList.push({ id: 's' + Date.now(), nom, lien, cat, groupe });
       saveStudios();
       renderStudios();
       $('studioNom').value = '';
       $('studioLien').value = '';
       $('studioCat').value = '';
+      if ($('studioGroupe')) $('studioGroupe').value = '';
       showToast('Studio ajouté');
     });
 
@@ -1824,10 +2342,14 @@ Hippolyte Combault`;
       studioList.forEach(s => window.open(s.lien, '_blank'));
     });
 
-    // IMPORT / EXPORT / RESET STUDIOS
     $('exportStudiosBtn').addEventListener('click', () => {
       downloadJSON(studioList, 'hippojob_studios.json');
       showToast('Liste des studios exportée (JSON)');
+    });
+
+    $('exportStudiosCsvBtn')?.addEventListener('click', () => {
+      downloadLinksCSV(studioList, 'hippojob_studios.csv');
+      showToast('Liste des studios exportée (CSV)');
     });
 
     $('importStudiosBtn').addEventListener('click', () => {
@@ -1839,15 +2361,47 @@ Hippolyte Combault`;
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (e) => {
+        const text = e.target.result;
         try {
-          const parsed = JSON.parse(e.target.result);
-          if (Array.isArray(parsed)) {
-            studioList = parsed;
-            saveStudios();
-            renderStudios();
-            showToast('Liste des studios importée avec succès !');
+          if (file.name.endsWith('.csv')) {
+            const rows = parseCSV(text);
+            if (rows.length > 1) {
+              const imported = [];
+              for (let i = 1; i < rows.length; i++) {
+                const r = rows[i];
+                if (r[0] && r[1]) {
+                  imported.push({
+                    id: 's' + Date.now() + i,
+                    nom: r[0],
+                    lien: r[1],
+                    cat: r[2] || 'Animation / VFX France',
+                    groupe: r[3] || 'France'
+                  });
+                }
+              }
+              if (imported.length > 0) {
+                studioList = imported;
+                saveStudios();
+                renderStudios();
+                showToast('Liste des studios CSV importée avec succès !');
+              }
+            }
+          } else {
+            const parsed = JSON.parse(text);
+            if (Array.isArray(parsed)) {
+              studioList = parsed.map(item => ({
+                id: item.id || ('s' + Date.now() + Math.random()),
+                nom: item.nom || 'Studio',
+                lien: item.lien || '',
+                cat: item.cat || item.groupe || 'Animation / VFX France',
+                groupe: item.groupe || item.cat || 'France'
+              }));
+              saveStudios();
+              renderStudios();
+              showToast('Liste des studios JSON importée avec succès !');
+            }
           }
-        } catch (err) { showToast('Fichier JSON invalide'); }
+        } catch (err) { showToast('Fichier invalide (JSON ou CSV requis)'); }
       };
       reader.readAsText(file);
       ev.target.value = '';
