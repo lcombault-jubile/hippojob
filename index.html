@@ -890,6 +890,7 @@
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{studio}">{studio}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{poste}">{poste}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{reel}">{reel}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{accroche}">{accroche}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{argumentsLettre}">{argumentsLettre}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{motsCles}">{motsCles}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{contact}">{contact}</button>
@@ -941,6 +942,7 @@
           <span style="font-size:0.75rem; color:var(--muted); align-self:center; font-family:'IBM Plex Mono',monospace;">Insérer variable :</span>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{studio}">{studio}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{poste}">{poste}</button>
+          <button class="btn-ghost btn-small gen-var-btn" data-var="{accroche}">{accroche}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{argumentsLettre}">{argumentsLettre}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{motsCles}">{motsCles}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{contact}">{contact}</button>
@@ -1148,15 +1150,22 @@
         <input type="text" id="dMotsCles">
       </div>
       <div class="field">
-        <label for="dArguments">À mettre en avant dans la lettre (séparés par des virgules)</label>
-        <input type="text" id="dArguments">
+        <label for="dAccroche">Accroche personnalisée pour ce studio</label>
+        <textarea id="dAccroche" style="min-height:80px;" placeholder="2-3 phrases montrant que l'annonce a été lue et le studio connu."></textarea>
+      </div>
+      <div class="field">
+        <label for="dArguments">Arguments de la lettre — une phrase complète par ligne</label>
+        <textarea id="dArguments" style="min-height:90px;" placeholder="Une phrase par ligne."></textarea>
       </div>
       <div class="field" id="dNoteWrap" style="display:none;">
         <label>Note</label>
         <p class="hint" id="dNote" style="margin:0;"></p>
       </div>
-      <button class="btn-primary" id="addBtn">Ajouter au suivi</button>
-      <button class="btn-ghost" id="discardBtn">Annuler</button>
+      <div class="action-row" style="margin-top:6px;">
+        <button class="btn-primary" id="addAndWriteBtn">✍️ Ajouter et rédiger la lettre</button>
+        <button class="btn-ghost" id="addBtn">Ajouter au suivi seulement</button>
+        <button class="btn-ghost" id="discardBtn">Annuler</button>
+      </div>
     </div>
 
     <div class="panel anchor-section" id="section-suivi">
@@ -1384,6 +1393,7 @@
         statut: normalizeStatut(e.statut),
         motsCles: Array.isArray(e.motsCles) ? e.motsCles : [],
         argumentsLettre: Array.isArray(e.argumentsLettre) ? e.argumentsLettre : [],
+        accroche: e.accroche || '',
         contactEmail: e.contactEmail || (/@/.test(e.contact || '') ? e.contact : ''),
         contact: /@/.test(e.contact || '') ? '' : (e.contact || '')
       }));
@@ -1936,6 +1946,7 @@ Donne-moi :
         const idxDateEntretien = getIdx(['entretien', 'date entretien']);
         const idxNotes = getIdx(['notes', 'remarques', 'commentaire']);
         const idxLien = getIdx(['lien', 'url', 'annonce']);
+        const idxAccroche = getIdx(['accroche']);
         // Deux colonnes distinctes : « Contact » (nom) et « Email contact ». Sans l'exclusion
         // explicite d'« email », la colonne nom capterait les deux et l'adresse serait perdue.
         const idxContactEmail = headers.findIndex(h => h.includes('email') || h.includes('mail'));
@@ -1986,6 +1997,7 @@ Donne-moi :
             dateEntretien: idxDateEntretien >= 0 ? r[idxDateEntretien] : '',
             notesEntretien: idxNotes >= 0 ? r[idxNotes] : '',
             lien: idxLien >= 0 ? r[idxLien] : '',
+            accroche: idxAccroche >= 0 ? (r[idxAccroche] || '') : '',
             contact: isEmail ? '' : contactRaw,
             contactEmail: emailRaw || (isEmail ? contactRaw : '')
           });
@@ -2068,6 +2080,7 @@ Donne-moi :
             dateEnvoi: x.dateEnvoi || '', relance: x.relance || '',
             dateReponse: x.dateReponse || '', dateEntretien: x.dateEntretien || '',
             notesEntretien: x.notesEntretien || '', lien: x.lien || '',
+            accroche: x.accroche || '',
             contact: x.contact || '', contactEmail: x.contactEmail || ''
           }));
           const added = mergeEntries(cleaned, 'cette sauvegarde');
@@ -2094,7 +2107,9 @@ Donne-moi :
 
 Bonjour {contact},
 
-Fraîchement diplômé de Rubika, je suis depuis longtemps le travail de {studio} et j'ai beaucoup d'admiration pour vos projets. Je vous écris aujourd'hui car je suis très motivé par votre offre de poste de {poste}.
+Fraîchement diplômé de Rubika, je vous écris au sujet de votre offre de poste de {poste}.
+
+{accroche}
 
 Le rig est l'une de mes spécialités, mais j'ai aussi une vraie passion pour l'animation 3D. Pour mon film de fin d'études, Icefall, j'étais à la fois Lead Rigger et Lead Animateur au sein d'une équipe de six. Cette expérience a été très formatrice : elle m'a appris à créer des rigs pensés pour les animateurs, parce que je connais bien les contraintes et les besoins qu'ils rencontrent au quotidien.
 
@@ -2253,6 +2268,10 @@ Bien cordialement,
       $('cfgTplMailRelance').value = lsGet(TPL_MAIL_RELANCE_KEY) || DEFAULT_TPL_MAIL_RELANCE;
       panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
       activeTplTextarea = $('cfgTplLettre');
+      // Un modèle enregistré avant l'ajout de {accroche} n'en bénéficie pas silencieusement.
+      if (!$('cfgTplLettre').value.includes('{accroche}')) {
+        showToast("Ton modèle de lettre n'utilise pas encore {accroche} — insère-la pour personnaliser par studio.");
+      }
     });
 
     ['cfgTplLettre', 'cfgTplMailEnvoi', 'cfgTplMailRelance'].forEach(id => {
@@ -2352,10 +2371,13 @@ Bien cordialement,
       const dateEnvoi = currentDocEntry.dateEnvoi || todayISO();
       const dateRelance = currentDocEntry.relance || plusDaysISO(7);
 
-      const argsArr = currentDocEntry.argumentsLettre || [];
-      const argsStr = argsArr.length > 0
-        ? argsArr.map(a => `• ${a}`).join('\n')
-        : '';
+      const argsArr = (currentDocEntry.argumentsLettre || []).filter(Boolean);
+      // Dans une lettre, une liste à puces au milieu d'un texte suivi fait bricolage : les
+      // arguments sont donc coulés en paragraphe. Dans un mail, les puces restent lisibles.
+      const argsStr = argsArr.length === 0 ? ''
+        : currentDocTab === 'lettre'
+          ? argsArr.map(a => a.trim().replace(/[.;]$/, '') + '.').join(' ')
+          : argsArr.map(a => `• ${a.trim()}`).join('\n');
 
       const kwArr = currentDocEntry.motsCles || [];
       const kwStr = kwArr.length > 0
@@ -2377,6 +2399,7 @@ Bien cordialement,
         .replace(/{reel}/g, reel)
         .replace(/{contact}/g, contact)
         .replace(/{lien}/g, lien)
+        .replace(/{accroche}/g, currentDocEntry.accroche || '')
         .replace(/{argumentsLettre}/g, argsStr)
         .replace(/{motsCles}/g, kwStr)
         .replace(/{dateEnvoi}/g, formatDateFr(dateEnvoi))
@@ -2387,7 +2410,9 @@ Bien cordialement,
         .replace(/{portfolio}/g, profil.portfolio || '')
         .replace(/{cv}/g, profil.cv || '');
 
-      $('genDocText').value = compiled;
+      // Une variable vide (accroche non renseignée, arguments absents) laisse une ligne
+      // orpheline : on recompacte pour ne jamais exporter un trou dans la mise en page.
+      $('genDocText').value = compiled.replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
       $('docGenTitle').textContent = `Document — ${studio} (${poste})`;
 
       const warnings = [];
@@ -2500,21 +2525,35 @@ Bien cordialement,
     $('copyAllBtn').addEventListener('click', () => {
       // Colonnes alignées sur ce que sait relire rowsToEntries : l'aller-retour Sheets est réversible.
       const header = ['Studio', 'Poste', 'Reel', 'Priorité', 'Mots-clés', 'À mettre en avant', 'Statut',
-        'Date Envoi', 'Relance', 'Date Réponse', 'Date Entretien', 'Notes', 'Lien', 'Contact', 'Email contact'].join('\t');
+        'Date Envoi', 'Relance', 'Date Réponse', 'Date Entretien', 'Notes', 'Lien', 'Contact', 'Email contact',
+        'Accroche'].join('\t');
       const clean = (v) => (v || '').toString().replace(/[\t\r\n]+/g, ' ');
       const rows = entries.map(e => [
         clean(e.studio), clean(e.poste), clean(e.reel), clean(e.priorite),
         (e.motsCles || []).join(' | '), (e.argumentsLettre || []).join(' | '),
         clean(e.statut), clean(e.dateEnvoi), clean(e.relance), clean(e.dateReponse),
         clean(e.dateEntretien), clean(e.notesEntretien), clean(e.lien),
-        clean(e.contact), clean(e.contactEmail)
+        clean(e.contact), clean(e.contactEmail), clean(e.accroche)
       ].join('\t'));
       copyToClipboard([header, ...rows].join('\n'));
       showToast('Tableau copié (pour Sheets / Notion)');
     });
 
     // IA ET ANALYSE
-    const ANALYSIS_SYSTEM_PROMPT = "Tu es un assistant d'analyse d'offres d'emploi pour l'animation 3D, VFX et jeux vidéo. Réponds UNIQUEMENT sous forme d'objet JSON valide (sans texte ni balises markdown avant/après) avec les clés suivantes : studio (string), poste (string), reel (\"Animation\" ou \"Rigging\"), motsCles (tableau 3-5 strings), priorite (\"Haute\", \"Moyenne\" ou \"Basse\"), note (court résumé), argumentsLettre (tableau 2-4 strings).";
+    const ANALYSIS_SYSTEM_PROMPT = `Tu es un assistant d'analyse d'offres d'emploi pour l'animation 3D, le VFX et le jeu vidéo.
+
+Le candidat : Hippolyte Combault, jeune diplômé de Rubika, double compétence rigging + animation 3D. Lead Rigger ET Lead Animateur sur son film de fin d'études « Icefall » (équipe de six). Maya, Python, auto-rigs, outils de pipeline. Objectif à terme : animateur 3D, mais le rigging est son point d'entrée le plus solide. Basé à Paris, mobile, privilégie le présentiel.
+
+Analyse l'offre fournie et réponds UNIQUEMENT par un objet JSON valide, sans texte ni balise markdown avant ou après, avec exactement ces clés :
+
+- studio (string) : le nom de l'entreprise
+- poste (string) : l'intitulé exact du poste
+- reel ("Animation" ou "Rigging") : lequel des deux reels sert le mieux cette candidature
+- motsCles (tableau de 3 à 5 strings) : les compétences et logiciels exigés par l'annonce
+- priorite ("Haute", "Moyenne" ou "Basse") : Haute si le profil colle vraiment et que le niveau est junior-compatible, Basse si l'offre demande plusieurs années d'expérience ou vise un autre métier
+- note (string) : 1 à 2 phrases d'évaluation HONNÊTE de l'adéquation. Signale explicitement les pièges : stage déguisé, poste non rémunéré, séniorité hors de portée, métier différent de ce qui est annoncé.
+- accroche (string) : 2 à 3 phrases rédigées à la première personne, PROPRES À CE STUDIO ET À CETTE ANNONCE, montrant qu'Hippolyte a lu l'offre et connaît le studio. Cite un projet, une technologie ou une exigence précise du texte. Interdiction absolue des formules passe-partout du type « je suis très motivé » ou « votre studio est reconnu ». Pas de superlatif creux.
+- argumentsLettre (tableau de 2 à 4 strings) : chaque élément doit être une PHRASE COMPLÈTE, à la première personne, terminée par un point, reliant une exigence précise de l'annonce à une expérience concrète d'Hippolyte. Pas de mots-clés isolés, pas de fragments nominaux.`;
 
     $('copyPromptBtn').addEventListener('click', () => {
       const text = $('jobText').value.trim();
@@ -2554,6 +2593,7 @@ Bien cordialement,
         argumentsLettre: Array.isArray(parsed.argumentsLettre) ? parsed.argumentsLettre : [],
         priorite: ['Haute', 'Moyenne', 'Basse'].includes(parsed.priorite) ? parsed.priorite : 'Moyenne',
         note: parsed.note || '',
+        accroche: parsed.accroche || '',
         lien: $('jobLink').value.trim()
       };
       fillDraft(draft);
@@ -2607,7 +2647,8 @@ Bien cordialement,
       $('dReel').value = d.reel;
       $('dPriorite').value = d.priorite;
       $('dMotsCles').value = d.motsCles.join(', ');
-      $('dArguments').value = d.argumentsLettre.join(', ');
+      $('dArguments').value = d.argumentsLettre.join('\n');
+      $('dAccroche').value = d.accroche || '';
       $('dContactNom').value = d.contact || '';
       $('dContactEmail').value = d.contactEmail || '';
       if (d.note) {
@@ -2622,7 +2663,24 @@ Bien cordialement,
       draft = null;
     });
 
-    $('addBtn').addEventListener('click', () => {
+    /**
+     * Splits the arguments field into a list.
+     * Why: arguments are now full sentences, so newlines are the separator; commas remain
+     * supported for data captured before the change and for pasted one-liners.
+     * @param {string} raw - Raw textarea content
+     * @returns {string[]}
+     */
+    function parseArguments(raw) {
+      const byLine = raw.split('\n').map(s => s.replace(/^[-•*]\s*/, '').trim()).filter(Boolean);
+      if (byLine.length > 1) return byLine;
+      return (byLine[0] || '').split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    /**
+     * Builds the entry from the draft form, guarding against duplicates.
+     * @returns {Object|null} The stored entry, or null when the user cancelled
+     */
+    function addDraftEntry() {
       const entry = {
         id: uid('e'),
         studio: $('dStudio').value.trim() || 'Inconnu',
@@ -2630,7 +2688,8 @@ Bien cordialement,
         reel: $('dReel').value,
         priorite: $('dPriorite').value,
         motsCles: $('dMotsCles').value.split(',').map(s => s.trim()).filter(Boolean),
-        argumentsLettre: $('dArguments').value.split(',').map(s => s.trim()).filter(Boolean),
+        argumentsLettre: parseArguments($('dArguments').value),
+        accroche: $('dAccroche').value.trim(),
         lien: $('dLien').value.trim(),
         contact: $('dContactNom').value.trim(),
         contactEmail: $('dContactEmail').value.trim(),
@@ -2640,14 +2699,23 @@ Bien cordialement,
 
       const dupe = entries.find(e => entryKey(e) === entryKey(entry));
       if (dupe && !confirm(`« ${dupe.studio} — ${dupe.poste} » est déjà dans ton suivi (statut : ${dupe.statut}).\n\nAjouter quand même une seconde ligne ?`)) {
-        return;
+        return null;
       }
 
       entries.unshift(entry);
       saveEntries();
       render();
       $('draftPanel').style.display = 'none';
-      showToast('Ajouté au suivi');
+      return entry;
+    }
+
+    $('addBtn').addEventListener('click', () => {
+      if (addDraftEntry()) showToast('Ajouté au suivi');
+    });
+
+    $('addAndWriteBtn').addEventListener('click', () => {
+      const entry = addDraftEntry();
+      if (entry) openDocGenerator(entry);
     });
 
     // GESTION ET EXPORT/IMPORT LIENS (VEILLE & STUDIOS)
