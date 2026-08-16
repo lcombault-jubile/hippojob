@@ -9,7 +9,6 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
     rel="stylesheet">
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
   <style>
     :root {
@@ -642,6 +641,125 @@
       transform: translateX(-50%) translateY(-4px);
     }
 
+    /* Bloc "À faire aujourd'hui" */
+    .today-panel {
+      border-color: var(--amber);
+    }
+
+    .today-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .today-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--panel-raised);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--amber);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: .86rem;
+      flex-wrap: wrap;
+    }
+
+    .today-item.urgent {
+      border-left-color: var(--red);
+    }
+
+    .today-item .t-label {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .today-item .t-label b {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .today-item .t-when {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: .74rem;
+      color: var(--muted);
+    }
+
+    .today-empty {
+      color: var(--muted);
+      font-size: .88rem;
+      padding: 8px 0;
+    }
+
+    tr.row-due td {
+      background: rgba(240, 168, 96, .07);
+    }
+
+    /* Filtres du tableau */
+    .filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .filters input,
+    .filters select {
+      width: auto;
+      min-width: 150px;
+      font-size: .8rem;
+      padding: 6px 10px;
+    }
+
+    /* Statistiques */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    .stat-box {
+      background: var(--panel-raised);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+
+    .stat-box .v {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.4rem;
+      color: var(--teal);
+      display: block;
+      line-height: 1.2;
+    }
+
+    .stat-box .k {
+      font-size: .7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .stat-box .d {
+      font-size: .72rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    textarea.notes-entretien {
+      min-width: 200px;
+      min-height: 58px;
+      font-size: .78rem;
+      padding: 6px 8px;
+      line-height: 1.4;
+    }
+
+    .contact-cell input {
+      font-size: .76rem;
+      padding: 5px 7px;
+      min-width: 150px;
+      margin-bottom: 4px;
+    }
+
     footer {
       text-align: center;
       color: var(--muted);
@@ -660,10 +778,11 @@
         <a href="#section-studios">Studios</a>
         <a href="#section-analyser">Analyser</a>
         <a href="#section-suivi">Suivi</a>
+        <a href="#section-stats">Stats</a>
       </div>
       <div class="topnav-actions">
+        <button class="btn-ghost btn-small" id="profilBtn" title="Coordonnées & liens (CV, portfolio)">👤 Profil</button>
         <button class="btn-ghost btn-small" id="templateConfigBtn" title="Modèles de lettre & mails">✉️ Modèles</button>
-        <button class="btn-ghost btn-small" id="googleConfigBtn" title="Client ID Google Cloud">🔐 Google Auth</button>
         <button class="btn-ghost btn-small" id="apiKeyBtn" title="Clés API Gemini / Claude">🔑 Clés API</button>
         <button class="btn-ghost btn-small" id="sheetOpenBtn">📄 Google Sheet</button>
         <button class="btn-ghost btn-small" id="sheetEditBtn" title="Modifier le lien">✎</button>
@@ -673,39 +792,69 @@
 
   <div class="wrap">
 
-    <!-- Panneau de Configuration Google Auth -->
-    <div class="panel" id="googleConfigPanel" style="display:none; border-color: var(--teal);">
-      <h2>Configuration Google OAuth</h2>
-      <p class="hint">Saisissez les identifiants de votre projet Google Cloud pour activer l'authentification et
-        l'exportation Sheets.</p>
-      <div class="field">
-        <label for="cfgClientId">Client ID OAuth Google</label>
-        <input type="text" id="cfgClientId" placeholder="781329608589-5o3sc5tq3jch7ivlv3bg9gg9o6jb94e4.apps.googleusercontent.com">
+    <!-- Panneau Profil du candidat -->
+    <div class="panel" id="profilPanel" style="display:none; border-color: var(--teal);">
+      <h2>Mon profil</h2>
+      <p class="hint">Ces informations remplacent automatiquement les variables <code>{nom}</code>, <code>{telephone}</code>,
+        <code>{email}</code>, <code>{portfolio}</code>, <code>{lienReel}</code> et <code>{cv}</code> dans les lettres et les mails. Remplis-les
+        avant d'envoyer quoi que ce soit.</p>
+      <div class="row2">
+        <div class="field">
+          <label for="cfgProfilNom">Nom complet</label>
+          <input type="text" id="cfgProfilNom" placeholder="{nom}">
+        </div>
+        <div class="field">
+          <label for="cfgProfilTel">Téléphone</label>
+          <input type="text" id="cfgProfilTel" placeholder="06 12 34 56 78">
+        </div>
       </div>
       <div class="field">
-        <label for="cfgProjectId">ID du Projet Google Cloud</label>
-        <input type="text" id="cfgProjectId" placeholder="hippojob">
+        <label for="cfgProfilEmail">Email</label>
+        <input type="text" id="cfgProfilEmail" placeholder="hippolyte@exemple.com">
       </div>
+      <div class="field">
+        <label for="cfgProfilPortfolio">Lien principal — LinkedIn ou site perso</label>
+        <input type="text" id="cfgProfilPortfolio" placeholder="https://www.linkedin.com/in/...">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="cfgProfilReelAnim">Demo reel Animation</label>
+          <input type="text" id="cfgProfilReelAnim" placeholder="https://vimeo.com/...">
+        </div>
+        <div class="field">
+          <label for="cfgProfilReelRig">Demo reel Rigging</label>
+          <input type="text" id="cfgProfilReelRig" placeholder="https://vimeo.com/...">
+        </div>
+      </div>
+      <p class="hint" style="margin:-6px 0 14px;">La variable <code>{lienReel}</code> choisit
+        automatiquement le bon reel selon le champ « Reel à envoyer » de chaque candidature.
+        <code>{reelAnimation}</code> et <code>{reelRigging}</code> restent disponibles pour citer
+        les deux.</p>
+      <div class="field">
+        <label for="cfgProfilCv">Lien du CV (Drive, site perso…)</label>
+        <input type="text" id="cfgProfilCv" placeholder="https://...">
+      </div>
+      <div class="status-line error" id="profilWarning"></div>
       <div class="action-row">
-        <button class="btn-primary" id="saveGoogleCfgBtn">Enregistrer la configuration</button>
-        <button class="btn-ghost" id="closeGoogleCfgBtn">Fermer</button>
+        <button class="btn-primary" id="saveProfilBtn">Enregistrer mon profil</button>
+        <button class="btn-ghost" id="closeProfilBtn">Fermer</button>
       </div>
     </div>
 
     <!-- Panneau de Configuration Clés API IA -->
     <div class="panel" id="apiKeysPanel" style="display:none; border-color: var(--amber);">
-      <h2>Clés API pour l'Analyse IA</h2>
-      <p class="hint">Ces clés sont stockées uniquement en local dans votre navigateur.</p>
+      <h2>Analyse IA — clé API (optionnel)</h2>
+      <p class="hint">L'analyse automatique n'est <b>pas nécessaire</b> : le bouton « Copier le prompt » fonctionne
+        gratuitement avec Claude.ai ou Gemini dans un autre onglet, et c'est le mode recommandé. Si tu ajoutes une clé
+        ici, elle est stockée en clair dans ce navigateur — ne l'utilise que sur une machine personnelle, et fixe un
+        plafond de dépense sur ton compte Google.</p>
       <div class="field">
-        <label for="cfgGeminiKey">Clé API Google Gemini (Obtenir sur aistudio.google.com)</label>
+        <label for="cfgGeminiKey">Clé API Google Gemini (gratuite sur aistudio.google.com)</label>
         <input type="text" id="cfgGeminiKey" placeholder="AIzaSy...">
       </div>
-      <div class="field">
-        <label for="cfgClaudeKey">Clé API Anthropic Claude</label>
-        <input type="text" id="cfgClaudeKey" placeholder="sk-ant-...">
-      </div>
       <div class="action-row">
-        <button class="btn-primary" id="saveApiKeysBtn">Enregistrer les clés API</button>
+        <button class="btn-primary" id="saveApiKeysBtn">Enregistrer la clé</button>
+        <button class="btn-ghost" id="clearApiKeysBtn">Supprimer la clé de ce navigateur</button>
         <button class="btn-ghost" id="closeApiKeysBtn">Fermer</button>
       </div>
     </div>
@@ -713,14 +862,21 @@
     <!-- Panneau de Configuration Google Sheet -->
     <div class="panel" id="sheetConfigPanel" style="display:none; border-color: var(--teal);">
       <h2>Lien Google Sheet</h2>
-      <p class="hint">Saisissez l'URL de votre Google Sheet de suivi des candidatures. Vous pouvez importer directement ses données ci-dessous.</p>
+      <p class="hint">Raccourci vers ta feuille d'archive. <b>Elle doit rester privée</b> : ne la publie pas sur le web.</p>
       <div class="field">
         <label for="cfgSheetUrl">URL de la Google Sheet</label>
-        <input type="text" id="cfgSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/1FPaCN3TvYL7J9WjBaaNRZjD37uzBQ-SzsvvGjwdLt9U/edit?gid=0#gid=0">
+        <input type="text" id="cfgSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
+      </div>
+      <div class="field" style="background:var(--panel-raised); border:1px solid var(--line); border-radius:8px; padding:12px 14px;">
+        <label style="margin-bottom:8px;">Comment échanger avec la feuille</label>
+        <p class="hint" style="margin:0;">
+          <b>Vers Sheets :</b> bouton « ☁️ Copier pour Sheet » dans le tableau de suivi, puis Ctrl+V dans la cellule A1.<br>
+          <b>Depuis Sheets :</b> dans la feuille, <i>Fichier &gt; Télécharger &gt; CSV</i>, puis bouton « 📂 Importer (JSON / CSV) ».<br>
+          <b>Sauvegarde quotidienne :</b> préfère « 💾 Sauvegarder (JSON) », fidèle à 100 % (Sheets reformate les dates).
+        </p>
       </div>
       <div class="action-row">
         <button class="btn-primary" id="saveSheetCfgBtn">Enregistrer</button>
-        <button class="btn-primary" id="fetchSheetCfgBtn" style="background: var(--amber); color: #16161a;">📥 Charger les données maintenant</button>
         <button class="btn-ghost" id="openSheetCfgBtn">Ouvrir la feuille ↗</button>
         <button class="btn-ghost" id="closeSheetCfgBtn">Fermer</button>
       </div>
@@ -748,12 +904,19 @@
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{studio}">{studio}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{poste}">{poste}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{reel}">{reel}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{accroche}">{accroche}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{argumentsLettre}">{argumentsLettre}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{motsCles}">{motsCles}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{contact}">{contact}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{lien}">{lien}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{dateEnvoi}">{dateEnvoi}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{dateRelance}">{dateRelance}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{nom}">{nom}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{telephone}">{telephone}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{email}">{email}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{portfolio}">{portfolio}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{lienReel}">{lienReel}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{cv}">{cv}</button>
         </div>
       </div>
 
@@ -784,19 +947,36 @@
           <button class="btn-ghost btn-small doc-tab-btn active" id="tabBtnLettre">📝 Lettre de Motivation</button>
           <button class="btn-ghost btn-small doc-tab-btn" id="tabBtnMailEnvoi">✉️ Email d'Envoi</button>
           <button class="btn-ghost btn-small doc-tab-btn" id="tabBtnMailRelance">🔄 Email de Relance</button>
+          <button class="btn-ghost btn-small doc-tab-btn" id="tabBtnPrepa">🎯 Prépa entretien</button>
         </div>
       </div>
       <p class="hint" style="margin-top:8px;">Le texte ci-dessous est personnalisé avec les données de l'offre et reste 100% éditable avant export.</p>
-      
-      <div class="field" style="margin-bottom:8px;">
+      <div class="status-line error" id="docGenWarning" style="margin-top:0;"></div>
+
+      <div class="field" id="prepaToolbar" style="display:none; background:var(--panel-raised); border:1px solid var(--line); border-radius:8px; padding:12px 14px;">
+        <label style="margin-bottom:8px;">Dossier de préparation</label>
+        <p class="hint" style="margin:0 0 10px;">Copie le prompt de recherche, colle-le dans Claude.ai
+          ou Gemini, puis recolle la réponse ci-dessous. Le dossier est enregistré avec la
+          candidature et exportable en Word.</p>
+        <div class="action-row">
+          <button class="btn-primary btn-small" id="copyPrepaPromptBtn">📋 Copier le prompt de recherche studio</button>
+          <button class="btn-ghost btn-small" id="savePrepaBtn">💾 Enregistrer le dossier</button>
+        </div>
+      </div>
+
+      <div class="field" id="genVarToolbar" style="margin-bottom:8px;">
         <div class="tag-row">
           <span style="font-size:0.75rem; color:var(--muted); align-self:center; font-family:'IBM Plex Mono',monospace;">Insérer variable :</span>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{studio}">{studio}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{poste}">{poste}</button>
+          <button class="btn-ghost btn-small gen-var-btn" data-var="{accroche}">{accroche}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{argumentsLettre}">{argumentsLettre}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{motsCles}">{motsCles}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{contact}">{contact}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{lien}">{lien}</button>
+          <button class="btn-ghost btn-small gen-var-btn" data-var="{portfolio}">{portfolio}</button>
+          <button class="btn-ghost btn-small gen-var-btn" data-var="{lienReel}">{lienReel}</button>
+          <button class="btn-ghost btn-small gen-var-btn" data-var="{cv}">{cv}</button>
         </div>
       </div>
 
@@ -822,6 +1002,14 @@
           <div>À relancer<b id="statRelance">0</b></div>
         </div>
       </div>
+    </div>
+
+    <div class="panel today-panel" id="todayPanel">
+      <div class="table-head">
+        <h2 style="margin:0;">À faire aujourd'hui</h2>
+        <span class="count" id="todayCount"></span>
+      </div>
+      <div class="today-list" id="todayList"></div>
     </div>
 
     <div class="panel anchor-section" id="section-veille">
@@ -926,18 +1114,12 @@
         <textarea id="jobText" placeholder="Colle ici le texte de l'offre"></textarea>
       </div>
 
-      <div class="field">
-        <label for="aiProvider">Moteur d'analyse IA</label>
-        <select id="aiProvider">
-          <option value="gemini">Gemini (Clé API Google / Gratuit)</option>
-          <option value="claude">Claude (Clé API Anthropic)</option>
-        </select>
-      </div>
-
       <div class="action-row">
-        <button class="btn-primary" id="copyPromptBtn">📋 Copier le prompt (pour copier-coller)</button>
-        <button class="btn-ghost" id="analyzeBtn">⚡ Analyser automatiquement</button>
+        <button class="btn-primary" id="copyPromptBtn">📋 Copier le prompt (recommandé — gratuit)</button>
+        <button class="btn-ghost" id="analyzeBtn" title="Nécessite une clé API Gemini">⚡ Analyser automatiquement (clé API)</button>
       </div>
+      <p class="hint" style="margin-top:10px;">Mode recommandé : « Copier le prompt », puis coller dans Claude.ai ou
+        Gemini dans un autre onglet, et recoller la réponse ci-dessous. Aucune clé API à stocker.</p>
       <div class="status-line" id="analyzeStatus"></div>
 
       <div class="field" id="manualResponseWrap" style="display:none; margin-top:16px;">
@@ -974,6 +1156,16 @@
       </div>
       <div class="row2">
         <div class="field">
+          <label for="dContactNom">Contact / recruteur (nom)</label>
+          <input type="text" id="dContactNom" placeholder="Ex. Madame Dupont">
+        </div>
+        <div class="field">
+          <label for="dContactEmail">Email du contact</label>
+          <input type="text" id="dContactEmail" placeholder="recrutement@studio.com">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
           <label for="dReel">Reel à envoyer</label>
           <select id="dReel">
             <option value="Animation">Animation</option>
@@ -986,15 +1178,22 @@
         <input type="text" id="dMotsCles">
       </div>
       <div class="field">
-        <label for="dArguments">À mettre en avant dans la lettre (séparés par des virgules)</label>
-        <input type="text" id="dArguments">
+        <label for="dAccroche">Accroche personnalisée pour ce studio</label>
+        <textarea id="dAccroche" style="min-height:80px;" placeholder="2-3 phrases montrant que l'annonce a été lue et le studio connu."></textarea>
+      </div>
+      <div class="field">
+        <label for="dArguments">Arguments de la lettre — une phrase complète par ligne</label>
+        <textarea id="dArguments" style="min-height:90px;" placeholder="Une phrase par ligne."></textarea>
       </div>
       <div class="field" id="dNoteWrap" style="display:none;">
         <label>Note</label>
         <p class="hint" id="dNote" style="margin:0;"></p>
       </div>
-      <button class="btn-primary" id="addBtn">Ajouter au suivi</button>
-      <button class="btn-ghost" id="discardBtn">Annuler</button>
+      <div class="action-row" style="margin-top:6px;">
+        <button class="btn-primary" id="addAndWriteBtn">✍️ Ajouter et rédiger la lettre</button>
+        <button class="btn-ghost" id="addBtn">Ajouter au suivi seulement</button>
+        <button class="btn-ghost" id="discardBtn">Annuler</button>
+      </div>
     </div>
 
     <div class="panel anchor-section" id="section-suivi">
@@ -1002,19 +1201,38 @@
         <h2 style="margin:0;">Tableau de suivi</h2>
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           <span class="count" id="countLabel">0 dossier</span>
-          <button class="btn-primary btn-small" id="fetchSheetDataBtn" style="background: var(--amber); color: #16161a;">📥 Charger depuis Google Sheet</button>
+          <button class="btn-ghost btn-small" id="exportEntriesBtn" title="Sauvegarde complète du suivi">💾 Sauvegarder (JSON)</button>
+          <button class="btn-ghost btn-small" id="importEntriesBtn" title="Sauvegarde JSON, ou CSV téléchargé depuis Google Sheets">📂 Importer (JSON / CSV)</button>
           <button class="btn-ghost btn-small" id="loadSheetBtn">🔗 Ouvrir Google Sheet</button>
           <button class="btn-ghost btn-small" id="sendSheetBtn">☁️ Copier pour Sheet</button>
           <button class="btn-ghost btn-small" id="copyAllBtn">Copier tout (Sheets / Notion)</button>
         </div>
       </div>
-      <p class="hint" style="margin-top:-4px;">Colle directement dans une vue "Tableau" Notion ou Google Sheets.</p>
+      <input type="file" id="importEntriesFile" accept=".json,.csv,.tsv" style="display:none">
+      <p class="hint" style="margin-top:-4px;">Colle directement dans une vue "Tableau" Notion ou Google Sheets.
+        <b>Sauvegarde le JSON régulièrement</b> : les données ne vivent que dans ce navigateur.</p>
+
+      <div class="filters">
+        <input type="text" id="filterSearch" placeholder="🔎 Rechercher studio, poste, mot-clé…">
+        <select id="filterStatut">
+          <option value="">Tous les statuts</option>
+        </select>
+        <select id="filterSort">
+          <option value="relance">Trier : relance la plus urgente</option>
+          <option value="recent">Trier : ajout le plus récent</option>
+          <option value="priorite">Trier : priorité</option>
+          <option value="studio">Trier : studio (A→Z)</option>
+        </select>
+        <button class="btn-ghost btn-small" id="filterDueBtn">⏰ Relances dues uniquement</button>
+      </div>
+
       <div style="overflow-x:auto;">
         <table class="sheet" id="sheetTable">
           <thead>
             <tr>
               <th>#</th>
               <th>Studio / Poste</th>
+              <th>Contact</th>
               <th>Reel</th>
               <th>Priorité</th>
               <th>Mots-clés</th>
@@ -1035,6 +1253,15 @@
       </div>
     </div>
 
+    <div class="panel anchor-section" id="section-stats">
+      <h2>Ce qui marche</h2>
+      <p class="hint">Après une trentaine de candidatures, ces chiffres disent si le problème vient du ciblage ou de la
+        lettre.</p>
+      <div class="stats-grid" id="statsGrid"></div>
+      <h3 class="form-subhead">Taux de réponse par reel envoyé</h3>
+      <div class="stats-grid" id="statsReel"></div>
+    </div>
+
     <footer>Les données restent stockées localement dans votre navigateur.</footer>
   </div>
 
@@ -1042,10 +1269,145 @@
 
   <script>
     const STORAGE_KEY = 'candidatures-list';
+    const PROFIL_KEY = 'candidatures-profil';
+    const STATUTS = ['À traiter', 'Reel à envoyer', 'Envoyé', 'Relancé', 'Entretien', 'Refus', 'Sans réponse'];
+    /** Statuts qui prouvent que le studio a répondu — base du calcul de taux de réponse. */
+    const STATUTS_REPONSE = ['Entretien', 'Refus'];
+    /** Statuts qui prouvent qu'une candidature est effectivement partie. */
+    const STATUTS_ENVOYE = ['Envoyé', 'Relancé', 'Entretien', 'Refus', 'Sans réponse'];
+
     let entries = [];
     let draft = null;
+    let profil = {};
 
     const $ = (id) => document.getElementById(id);
+
+    /*
+     * Accès protégés au stockage local.
+     * Why: localStorage lève une SecurityError en navigation privée, en iframe cloisonnée ou
+     * quand les cookies tiers sont bloqués. Un seul accès non protégé interrompt tout le script
+     * et la page devient un formulaire mort, sans message d'erreur.
+     */
+    let storageBroken = false;
+    function lsGet(key) {
+      try { return localStorage.getItem(key); } catch (e) { storageBroken = true; return null; }
+    }
+    function lsSet(key, value) {
+      try { localStorage.setItem(key, value); return true; } catch (e) { storageBroken = true; return false; }
+    }
+    function lsRemove(key) {
+      try { localStorage.removeItem(key); } catch (e) { storageBroken = true; }
+    }
+
+    /**
+     * Normalizes a statut coming from an external source (Google Sheet, JSON import).
+     * Why: the table renders a fixed <select>; an unknown value would silently reset the
+     * status to "À traiter" on the next edit, losing the imported data.
+     * @param {string} raw - Arbitrary status string
+     * @returns {string} One of STATUTS
+     */
+    function normalizeStatut(raw) {
+      const s = (raw || '').toString().trim().toLowerCase();
+      if (!s) return 'À traiter';
+      const exact = STATUTS.find(v => v.toLowerCase() === s);
+      if (exact) return exact;
+      if (s.includes('entretien') || s.includes('interview')) return 'Entretien';
+      if (s.includes('refus') || s.includes('nég') || s.includes('reject')) return 'Refus';
+      if (s.includes('relanc')) return 'Relancé';
+      if (s.includes('envoy') || s.includes('sent') || s.includes('postul')) return 'Envoyé';
+      if (s.includes('sans')) return 'Sans réponse';
+      if (s.includes('reel')) return 'Reel à envoyer';
+      return 'À traiter';
+    }
+
+    /**
+     * Returns a URL only if it uses a safe navigable protocol.
+     * Why: links come from pasted text, CSV and Google Sheet cells; a "javascript:" value
+     * rendered into href would execute on click.
+     * @param {string} raw - Candidate URL
+     * @returns {string} The URL, or '' when unsafe
+     */
+    function safeUrl(raw) {
+      const v = (raw || '').toString().trim();
+      if (!v) return '';
+      try {
+        const u = new URL(v, window.location.href);
+        return (u.protocol === 'http:' || u.protocol === 'https:' || u.protocol === 'mailto:') ? v : '';
+      } catch (e) { return ''; }
+    }
+
+    /**
+     * Builds a stable comparison key for a candidature.
+     * Why: used to merge imports without creating duplicate rows for the same offer.
+     * @param {Object} e - Entry
+     * @returns {string} Normalized "studio|poste" key
+     */
+    function entryKey(e) {
+      const n = (s) => (s || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
+      return `${n(e.studio)}|${n(e.poste)}`;
+    }
+
+    function uid(prefix) {
+      return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    }
+
+    const DEFAULT_PROFIL = {
+      nom: 'Hippolyte Combault',
+      telephone: '',
+      email: '',
+      portfolio: '',
+      reelAnimation: '',
+      reelRigging: '',
+      cv: ''
+    };
+
+    /**
+     * Picks the demo reel matching a candidature.
+     * Why: each offer targets either animation or rigging; linking the wrong reel — or a
+     * generic one — wastes the first thing a studio actually looks at.
+     * @param {Object} entry - Candidature, carrying reel = "Animation" | "Rigging"
+     * @returns {string} URL of the relevant reel, falling back to the other one
+     */
+    function reelUrlFor(entry) {
+      const wanted = (entry && entry.reel === 'Rigging') ? profil.reelRigging : profil.reelAnimation;
+      const other = (entry && entry.reel === 'Rigging') ? profil.reelAnimation : profil.reelRigging;
+      return wanted || other || '';
+    }
+
+    function loadProfil() {
+      try {
+        const raw = lsGet(PROFIL_KEY);
+        profil = raw ? Object.assign({}, DEFAULT_PROFIL, JSON.parse(raw)) : Object.assign({}, DEFAULT_PROFIL);
+      } catch (e) { profil = Object.assign({}, DEFAULT_PROFIL); }
+    }
+
+    /**
+     * Lists the profile fields still empty.
+     * Why: sending a letter containing an unresolved {telephone} placeholder is worse than
+     * sending nothing, so the generator warns before export.
+     * @returns {string[]} Human labels of missing fields
+     */
+    function missingProfilFields() {
+      const missing = [];
+      if (!profil.nom) missing.push('nom');
+      if (!profil.telephone) missing.push('téléphone');
+      if (!profil.email) missing.push('email');
+      if (!profil.portfolio) missing.push('lien principal (LinkedIn)');
+      return missing;
+    }
+
+    /**
+     * Fields that weaken a candidature without blocking it.
+     * Why: in animation/rigging the demo reel is the deciding document, but forcing it would
+     * stop Hippolyte from applying at all while his reel is not online yet.
+     * @returns {string[]}
+     */
+    function weakProfilFields() {
+      const w = [];
+      if (!profil.reelAnimation) w.push('demo reel Animation manquant');
+      if (!profil.reelRigging) w.push('demo reel Rigging manquant');
+      return w;
+    }
 
     function showToast(msg) {
       const t = $('toast');
@@ -1055,6 +1417,20 @@
     }
 
     function todayISO() { return new Date().toISOString().slice(0, 10); }
+
+    /**
+     * Formats an ISO date for insertion into a French letter or email.
+     * Why: "transmise le 2026-08-15" reads like a database dump in a cover letter.
+     * @param {string} iso - Date in YYYY-MM-DD form
+     * @returns {string} e.g. "15 août 2026", or the input when unparseable
+     */
+    function formatDateFr(iso) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || '')) return iso || '';
+      const [y, m, d] = iso.split('-').map(Number);
+      const dt = new Date(Date.UTC(y, m - 1, d));
+      if (isNaN(dt.getTime())) return iso;
+      return dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+    }
     function plusDaysISO(days) {
       const d = new Date();
       d.setDate(d.getDate() + days);
@@ -1063,14 +1439,72 @@
 
     async function loadEntries() {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        const raw = lsGet(STORAGE_KEY);
         entries = raw ? JSON.parse(raw) : [];
       } catch (e) { entries = []; }
+      if (!Array.isArray(entries)) entries = [];
+      // Migration des données existantes : statuts hors liste et champ contactEmail absent.
+      entries = entries.map(e => Object.assign({}, e, {
+        id: e.id || uid('e'),
+        statut: normalizeStatut(e.statut),
+        motsCles: Array.isArray(e.motsCles) ? e.motsCles : [],
+        argumentsLettre: Array.isArray(e.argumentsLettre) ? e.argumentsLettre : [],
+        accroche: e.accroche || '',
+        prepaEntretien: e.prepaEntretien || '',
+        contactEmail: e.contactEmail || (/@/.test(e.contact || '') ? e.contact : ''),
+        contact: /@/.test(e.contact || '') ? '' : (e.contact || '')
+      }));
       render();
     }
 
     async function saveEntries() {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); } catch (e) { }
+      if (!lsSet(STORAGE_KEY, JSON.stringify(entries))) {
+        showToast("⚠️ Impossible d'enregistrer : sauvegarde ton suivi en JSON tout de suite !");
+      }
+    }
+
+    let filterDueOnly = false;
+
+    /**
+     * Tells whether an entry needs a follow-up today.
+     * Why: drives both the "À faire aujourd'hui" block and the row highlighting.
+     * @param {Object} e - Entry
+     * @returns {boolean}
+     */
+    function isRelanceDue(e) {
+      return !!e.relance && e.relance <= todayISO() && e.statut !== 'Entretien' && e.statut !== 'Refus';
+    }
+
+    const PRIORITE_ORDER = { 'Haute': 0, 'Moyenne': 1, 'Basse': 2 };
+
+    /**
+     * Applies the search box, status filter, due-only toggle and sort order.
+     * Why: the table becomes unusable past ~30 rows without them.
+     * @returns {Object[]} Entries to display, in display order
+     */
+    function visibleEntries() {
+      const q = ($('filterSearch')?.value || '').trim().toLowerCase();
+      const statut = $('filterStatut')?.value || '';
+      const sort = $('filterSort')?.value || 'relance';
+
+      let list = entries.filter(e => {
+        if (statut && e.statut !== statut) return false;
+        if (filterDueOnly && !isRelanceDue(e)) return false;
+        if (!q) return true;
+        const hay = [e.studio, e.poste, e.contact, e.contactEmail, e.notesEntretien, e.reel, e.statut,
+        (e.motsCles || []).join(' '), (e.argumentsLettre || []).join(' ')].join(' ').toLowerCase();
+        return hay.includes(q);
+      });
+
+      const far = '9999-12-31';
+      if (sort === 'relance') {
+        list = list.slice().sort((a, b) => (a.relance || far).localeCompare(b.relance || far));
+      } else if (sort === 'priorite') {
+        list = list.slice().sort((a, b) => (PRIORITE_ORDER[a.priorite] ?? 3) - (PRIORITE_ORDER[b.priorite] ?? 3));
+      } else if (sort === 'studio') {
+        list = list.slice().sort((a, b) => (a.studio || '').localeCompare(b.studio || '', 'fr'));
+      }
+      return list;
     }
 
     function render() {
@@ -1078,39 +1512,51 @@
       const empty = $('emptyState');
       body.innerHTML = '';
 
-      if (entries.length === 0) {
+      const shown = visibleEntries();
+
+      if (shown.length === 0) {
         empty.style.display = 'block';
+        empty.textContent = entries.length === 0
+          ? "Aucune offre analysée pour l'instant. Colle une annonce ci-dessus pour commencer."
+          : "Aucun dossier ne correspond à ce filtre.";
         $('sheetTable').style.display = 'none';
       } else {
         empty.style.display = 'none';
         $('sheetTable').style.display = 'table';
       }
 
-      entries.forEach((e, i) => {
+      shown.forEach((e, i) => {
         const tr = document.createElement('tr');
+        if (isRelanceDue(e)) tr.className = 'row-due';
+        const href = safeUrl(e.lien);
         tr.innerHTML = `
-      <td class="idx">${String(i + 1).padStart(2, '0')}</td>
+      <td class="idx">${String(i + 1).padStart(2, '0')}${isRelanceDue(e) ? ' ⏰' : ''}</td>
       <td class="studio-cell">
         <b>${escapeHtml(e.studio)}</b><span>${escapeHtml(e.poste)}</span>
-        ${e.lien ? `<a class="cell-link" href="${escapeHtml(e.lien)}" target="_blank" rel="noopener">Voir l'annonce ↗</a>` : ''}
+        ${href ? `<a class="cell-link" href="${escapeHtml(href)}" target="_blank" rel="noopener">Voir l'annonce ↗</a>` : ''}
       </td>
-      <td><span class="pill reel-${e.reel}">${e.reel}</span></td>
-      <td><span class="pill prio-${e.priorite}">${e.priorite}</span></td>
+      <td class="contact-cell">
+        <input type="text" data-field="contact" data-id="${e.id}" value="${escapeHtml(e.contact || '')}" placeholder="Nom du contact">
+        <input type="text" data-field="contactEmail" data-id="${e.id}" value="${escapeHtml(e.contactEmail || '')}" placeholder="email@studio.com">
+      </td>
+      <td><span class="pill reel-${escapeHtml(e.reel)}">${escapeHtml(e.reel)}</span></td>
+      <td><span class="pill prio-${escapeHtml(e.priorite)}">${escapeHtml(e.priorite)}</span></td>
       <td><div class="kw-cell">${e.motsCles.map(k => `<span class="kw-mini">${escapeHtml(k)}</span>`).join('')}</div></td>
       <td><div class="kw-cell">${(e.argumentsLettre || []).map(k => `<span class="kw-mini highlight">${escapeHtml(k)}</span>`).join('') || '<span class="hint" style="margin:0;">—</span>'}</div></td>
       <td>
         <select class="statut" data-id="${e.id}">
-          ${['À traiter', 'Reel à envoyer', 'Envoyé', 'Relancé', 'Entretien', 'Refus', 'Sans réponse'].map(s => `<option value="${s}" ${e.statut === s ? 'selected' : ''}>${s}</option>`).join('')}
+          ${STATUTS.map(s => `<option value="${escapeHtml(s)}" ${e.statut === s ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('')}
         </select>
       </td>
       <td><input type="date" class="relance-date" data-field="dateEnvoi" data-id="${e.id}" value="${e.dateEnvoi || ''}"></td>
       <td><input type="date" class="relance-date" data-field="relance" data-id="${e.id}" value="${e.relance || ''}"></td>
       <td><input type="date" class="relance-date" data-field="dateReponse" data-id="${e.id}" value="${e.dateReponse || ''}"></td>
       <td><input type="date" class="relance-date" data-field="dateEntretien" data-id="${e.id}" value="${e.dateEntretien || ''}"></td>
-      <td><input type="text" class="notes-entretien" data-field="notesEntretien" data-id="${e.id}" value="${escapeHtml(e.notesEntretien || '')}" placeholder="Note..."></td>
+      <td><textarea class="notes-entretien" data-field="notesEntretien" data-id="${e.id}" placeholder="Questions posées, personnes rencontrées, suite à donner…">${escapeHtml(e.notesEntretien || '')}</textarea></td>
       <td>
         <div class="row-actions">
           <button class="btn-primary btn-small doc-row" data-id="${e.id}">📄 Lettre & Mails</button>
+          <button class="btn-ghost btn-small prep-row" data-id="${e.id}" title="Copier un prompt de préparation d'entretien">🎯 Prépa</button>
           <button class="btn-ghost btn-small copy-row" data-id="${e.id}">Copier</button>
           <button class="btn-danger-ghost btn-small del-row" data-id="${e.id}">Suppr.</button>
         </div>
@@ -1119,66 +1565,239 @@
         body.appendChild(tr);
       });
 
-      $('countLabel').textContent = `${entries.length} dossier${entries.length > 1 ? 's' : ''}`;
+      $('countLabel').textContent = shown.length === entries.length
+        ? `${entries.length} dossier${entries.length > 1 ? 's' : ''}`
+        : `${shown.length} / ${entries.length} dossiers`;
       $('statTotal').textContent = entries.length;
-      $('statRelance').textContent = entries.filter(e => e.relance && e.relance <= todayISO() && e.statut !== 'Entretien' && e.statut !== 'Refus').length;
+      $('statRelance').textContent = entries.filter(isRelanceDue).length;
 
       attachRowHandlers();
+      renderToday();
+      renderStats();
+    }
+
+    /**
+     * Renders the actionable "today" list: overdue follow-ups, upcoming interviews, untouched offers.
+     * Why: turns a passive table into a daily to-do — the single most useful change for a job hunt.
+     */
+    function renderToday() {
+      const list = $('todayList');
+      const today = todayISO();
+      const items = [];
+
+      entries.filter(isRelanceDue).forEach(e => {
+        const late = e.relance < today;
+        items.push({
+          urgent: late,
+          label: `<b>Relancer ${escapeHtml(e.studio)}</b> — ${escapeHtml(e.poste)}`,
+          when: late ? `en retard depuis le ${e.relance}` : 'à relancer aujourd\'hui',
+          id: e.id, action: 'doc'
+        });
+      });
+
+      entries.filter(e => e.dateEntretien && e.dateEntretien >= today && e.dateEntretien <= plusDaysISO(7)).forEach(e => {
+        items.push({
+          urgent: e.dateEntretien === today,
+          label: `<b>Entretien ${escapeHtml(e.studio)}</b> — ${escapeHtml(e.poste)}`,
+          when: e.dateEntretien === today ? "aujourd'hui" : `le ${e.dateEntretien}`,
+          id: e.id, action: 'prep'
+        });
+      });
+
+      const aTraiter = entries.filter(e => e.statut === 'À traiter' || e.statut === 'Reel à envoyer');
+      if (aTraiter.length > 0) {
+        items.push({
+          urgent: false,
+          label: `<b>${aTraiter.length} candidature${aTraiter.length > 1 ? 's' : ''} à envoyer</b> — jamais transmise${aTraiter.length > 1 ? 's' : ''}`,
+          when: aTraiter.map(e => e.studio).slice(0, 3).join(', ') + (aTraiter.length > 3 ? '…' : ''),
+          id: aTraiter[0].id, action: 'doc'
+        });
+      }
+
+      $('todayCount').textContent = items.length === 0 ? '' : `${items.length} action${items.length > 1 ? 's' : ''}`;
+
+      if (items.length === 0) {
+        list.innerHTML = '<div class="today-empty">Rien d\'urgent aujourd\'hui. Bon moment pour ouvrir la veille et ajouter une nouvelle offre.</div>';
+        return;
+      }
+
+      list.innerHTML = items.map(it => `
+        <div class="today-item${it.urgent ? ' urgent' : ''}">
+          <span class="t-label">${it.label}</span>
+          <span class="t-when">${escapeHtml(it.when)}</span>
+          <button class="btn-ghost btn-small today-go" data-id="${it.id}" data-action="${it.action}">${it.action === 'prep' ? '🎯 Préparer' : '📄 Ouvrir'}</button>
+        </div>
+      `).join('');
+
+      list.querySelectorAll('.today-go').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+          const entry = entries.find(x => x.id === ev.currentTarget.dataset.id);
+          if (!entry) return;
+          openDocGenerator(entry, ev.currentTarget.dataset.action === 'prep' ? 'prepa' : 'lettre');
+        });
+      });
+    }
+
+    /**
+     * Computes response-rate statistics over the candidatures actually sent.
+     * Why: after ~30 applications these numbers say whether the targeting or the letter is the problem.
+     */
+    function renderStats() {
+      const sent = entries.filter(e => STATUTS_ENVOYE.includes(e.statut));
+      const answered = sent.filter(e => STATUTS_REPONSE.includes(e.statut));
+      const interviews = entries.filter(e => e.statut === 'Entretien');
+      const relanced = entries.filter(e => e.statut === 'Relancé');
+      const pct = (n, d) => d === 0 ? '—' : Math.round((n / d) * 100) + ' %';
+
+      $('statsGrid').innerHTML = `
+        <div class="stat-box"><span class="v">${sent.length}</span><span class="k">Candidatures envoyées</span></div>
+        <div class="stat-box"><span class="v">${pct(answered.length, sent.length)}</span><span class="k">Taux de réponse</span><div class="d">${answered.length} réponse${answered.length > 1 ? 's' : ''} obtenue${answered.length > 1 ? 's' : ''}</div></div>
+        <div class="stat-box"><span class="v">${pct(interviews.length, sent.length)}</span><span class="k">Taux d'entretien</span><div class="d">${interviews.length} entretien${interviews.length > 1 ? 's' : ''}</div></div>
+        <div class="stat-box"><span class="v">${relanced.length}</span><span class="k">Relances effectuées</span></div>
+      `;
+
+      $('statsReel').innerHTML = ['Animation', 'Rigging'].map(r => {
+        const s = sent.filter(e => e.reel === r);
+        const a = s.filter(e => STATUTS_REPONSE.includes(e.statut));
+        return `<div class="stat-box"><span class="v">${pct(a.length, s.length)}</span><span class="k">Reel ${r}</span><div class="d">${a.length} réponse${a.length > 1 ? 's' : ''} sur ${s.length} envoi${s.length > 1 ? 's' : ''}</div></div>`;
+      }).join('');
+    }
+
+    /**
+     * Copies an interview-preparation prompt for an entry to the clipboard.
+     * Why: the decisive work happens after a positive answer, and the tool had nothing for it.
+     * @param {Object} e - Entry
+     */
+    function copyPrepPrompt(e) {
+      const prompt = `Rédige-moi un dossier de préparation d'entretien, structuré et prêt à relire la veille.
+
+CONTEXTE
+- Poste : ${e.poste}
+- Studio : ${e.studio}
+- Secteur : animation 3D / VFX / jeu vidéo
+- Candidat : Hippolyte Combault, jeune diplômé de Rubika. Double compétence rigging + animation 3D. Lead Rigger ET Lead Animateur sur son film de fin d'études « Icefall » (équipe de six). Maya, Python, auto-rigs, outils de pipeline. Objectif à terme : animateur 3D. Basé à Paris, mobile, privilégie le présentiel.
+- Mots-clés de l'annonce : ${(e.motsCles || []).join(', ') || 'non renseignés'}
+- Arguments utilisés dans ma candidature : ${(e.argumentsLettre || []).join(' / ') || 'non renseignés'}
+- Accroche envoyée : ${e.accroche || 'non renseignée'}
+- Lien de l'annonce : ${e.lien || 'non renseigné'}
+- Reel envoyé : ${e.reel}
+${e.notesEntretien ? `- Mes notes déjà prises : ${e.notesEntretien}` : ''}
+
+STRUCTURE ATTENDUE
+
+1. LE STUDIO EN UNE PAGE
+   Synthèse factuelle : ce qu'il produit (séries, longs, pubs, jeux), ses productions marquantes des cinq dernières années, sa taille approximative, ses implantations, son actionnariat ou son groupe s'il y en a un, sa réputation en tant qu'employeur. Distingue clairement ce que tu sais de ce que tu supposes, et signale explicitement ce qui demande vérification. N'invente aucun titre de production ni aucun chiffre.
+
+2. PIPELINE ET TECHNIQUE
+   Logiciels et outils probablement utilisés (DCC, moteur de rendu, gestion d'assets, tracking). Ce que cela implique concrètement pour un rigger ou un animateur junior au quotidien.
+
+3. POURQUOI EUX, POURQUOI MOI
+   Trois angles crédibles pour répondre à « pourquoi notre studio ? » sans flatterie creuse, en m'appuyant sur des éléments réels du studio et sur mon parcours.
+
+4. LES 8 QUESTIONS LES PLUS PROBABLES
+   Pour chacune : la question, l'intention réelle du recruteur derrière, et l'angle de réponse adapté à mon profil. Pas de réponse toute faite à réciter, une trame.
+
+5. LES QUESTIONS TECHNIQUES PIÈGES
+   Cinq questions techniques rigging et animation réellement posées à ce niveau, avec les éléments de réponse attendus.
+
+6. MES POINTS FAIBLES
+   Ce qu'ils vont sonder chez un jeune diplômé (manque d'expérience en production, cadence, travail en équipe élargie, choix rig vs anim) et comment y répondre honnêtement, sans surjouer ni s'excuser.
+
+7. CE QUE JE DOIS DEMANDER
+   Six questions à poser, qui montrent que j'ai compris leur activité, dont au moins deux sur le pipeline et une sur l'évolution du poste.
+
+8. LOGISTIQUE
+   Ce qu'il faut préparer concrètement : quels plans du reel commenter et pourquoi, quels fichiers avoir sous la main, quels chiffres de mon expérience savoir citer.
+
+Sois direct et concret. Pas de généralités applicables à n'importe quel studio.`;
+      copyToClipboard(prompt);
+      showToast("Prompt copié — colle-le dans Claude.ai ou Gemini, puis recolle la réponse dans l'onglet Prépa.");
     }
 
     function attachRowHandlers() {
+      const byId = (ev) => entries.find(e => e.id === ev.currentTarget.dataset.id);
+
       document.querySelectorAll('.statut').forEach(sel => {
         sel.addEventListener('change', (ev) => {
-          const id = ev.target.dataset.id;
-          const entry = entries.find(e => e.id === id);
-          entry.statut = ev.target.value;
-          if (ev.target.value === 'Envoyé' && !entry.dateEnvoi) {
+          const entry = byId(ev);
+          if (!entry) return;
+          entry.statut = ev.currentTarget.value;
+          if (entry.statut === 'Envoyé' && !entry.dateEnvoi) {
             entry.dateEnvoi = todayISO();
             entry.relance = plusDaysISO(7);
-            render();
           }
           saveEntries();
+          render();
         });
       });
       document.querySelectorAll('.relance-date').forEach(inp => {
         inp.addEventListener('change', (ev) => {
-          const entry = entries.find(e => e.id === ev.target.dataset.id);
-          entry[ev.target.dataset.field] = ev.target.value;
+          const entry = byId(ev);
+          if (!entry) return;
+          entry[ev.currentTarget.dataset.field] = ev.currentTarget.value;
           saveEntries();
+          render();
         });
       });
-      document.querySelectorAll('.notes-entretien').forEach(inp => {
+      document.querySelectorAll('.notes-entretien, .contact-cell input').forEach(inp => {
         inp.addEventListener('change', (ev) => {
-          const entry = entries.find(e => e.id === ev.target.dataset.id);
-          entry.notesEntretien = ev.target.value;
+          const entry = byId(ev);
+          if (!entry) return;
+          entry[ev.currentTarget.dataset.field] = ev.currentTarget.value;
           saveEntries();
         });
       });
       document.querySelectorAll('.doc-row').forEach(btn => {
         btn.addEventListener('click', (ev) => {
-          const id = ev.target.dataset.id;
-          const entry = entries.find(x => x.id === id);
+          const entry = byId(ev);
           if (entry) openDocGenerator(entry);
+        });
+      });
+      document.querySelectorAll('.prep-row').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+          const entry = byId(ev);
+          if (entry) openDocGenerator(entry, 'prepa');
         });
       });
       document.querySelectorAll('.copy-row').forEach(btn => {
         btn.addEventListener('click', (ev) => {
-          const e = entries.find(x => x.id === ev.target.dataset.id);
-          const line = [e.studio, e.poste, e.reel, e.contact || '', e.dateEnvoi || '', e.relance || '', e.lien || '', (e.argumentsLettre || []).join(' | ')].join('\t');
+          const e = byId(ev);
+          if (!e) return;
+          const line = [e.studio, e.poste, e.reel, e.contact || '', e.contactEmail || '', e.dateEnvoi || '', e.relance || '', e.lien || '', (e.argumentsLettre || []).join(' | ')].join('\t');
           copyToClipboard(line);
           showToast('Ligne copiée');
         });
       });
       document.querySelectorAll('.del-row').forEach(btn => {
         btn.addEventListener('click', (ev) => {
-          const id = ev.target.dataset.id;
-          entries = entries.filter(e => e.id !== id);
+          const entry = byId(ev);
+          if (!entry) return;
+          if (!confirm(`Supprimer définitivement la candidature « ${entry.studio} — ${entry.poste} » ?\n\nCette action est irréversible.`)) return;
+          entries = entries.filter(e => e.id !== entry.id);
           saveEntries();
           render();
           showToast('Dossier supprimé');
         });
       });
     }
+
+    ['filterSearch', 'filterStatut', 'filterSort'].forEach(id => {
+      $(id).addEventListener('input', render);
+    });
+
+    $('filterDueBtn').addEventListener('click', (ev) => {
+      filterDueOnly = !filterDueOnly;
+      ev.currentTarget.classList.toggle('btn-primary', filterDueOnly);
+      ev.currentTarget.classList.toggle('btn-ghost', !filterDueOnly);
+      render();
+    });
+
+    STATUTS.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s;
+      opt.textContent = s;
+      $('filterStatut').appendChild(opt);
+    });
 
     /**
      * Copies text to the system clipboard securely.
@@ -1199,35 +1818,67 @@
       return d.innerHTML;
     }
 
-    // VALEURS ET CONFIGURATION PAR DÉFAUT
-    const DEFAULT_CLIENT_ID = '781329608589-5o3sc5tq3jch7ivlv3bg9gg9o6jb94e4.apps.googleusercontent.com';
-    const DEFAULT_PROJECT_ID = 'hippojob';
-    const DEFAULT_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1FPaCN3TvYL7J9WjBaaNRZjD37uzBQ-SzsvvGjwdLt9U/edit?gid=0#gid=0';
+    /*
+     * L'écran « Google Auth » a été supprimé : il enregistrait un Client ID que rien ne lisait,
+     * et le script Google Identity chargé en <head> n'était jamais initialisé. Aucune
+     * authentification n'existait réellement. Les données restent locales à ce navigateur ;
+     * l'échange avec Google Sheets se fait par copier-coller et fichier CSV.
+     */
+    // Vide par défaut : le dépôt est public, l'URL d'une feuille privée n'a rien à y faire.
+    // Chaque utilisateur saisit la sienne, conservée dans son seul navigateur.
+    const DEFAULT_SHEET_URL = '';
 
-    // GESTION DU PANNEAU GOOGLE AUTH
-    $('googleConfigBtn').addEventListener('click', () => {
-      const panel = $('googleConfigPanel');
-      $('cfgClientId').value = localStorage.getItem('google-client-id') || DEFAULT_CLIENT_ID;
-      $('cfgProjectId').value = localStorage.getItem('google-project-id') || DEFAULT_PROJECT_ID;
+    // Nettoyage des identifiants OAuth laissés par l'ancien écran « Google Auth ».
+    lsRemove('google-client-id');
+    lsRemove('google-project-id');
+
+    // GESTION DU PANNEAU PROFIL
+    $('profilBtn').addEventListener('click', () => {
+      const panel = $('profilPanel');
+      $('cfgProfilNom').value = profil.nom || '';
+      $('cfgProfilTel').value = profil.telephone || '';
+      $('cfgProfilEmail').value = profil.email || '';
+      $('cfgProfilPortfolio').value = profil.portfolio || '';
+      $('cfgProfilReelAnim').value = profil.reelAnimation || '';
+      $('cfgProfilReelRig').value = profil.reelRigging || '';
+      $('cfgProfilCv').value = profil.cv || '';
+      refreshProfilWarning();
       panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     });
 
-    $('closeGoogleCfgBtn').addEventListener('click', () => {
-      $('googleConfigPanel').style.display = 'none';
+    function refreshProfilWarning() {
+      const missing = missingProfilFields();
+      const weak = weakProfilFields();
+      const parts = [];
+      if (missing.length) parts.push(`À compléter avant d'envoyer une candidature : ${missing.join(', ')}.`);
+      if (weak.length) parts.push('Point faible : ' + weak.join(', ') + ". Un studio d'animation juge le reel en premier.");
+      $('profilWarning').textContent = parts.join(' ');
+    }
+
+    $('closeProfilBtn').addEventListener('click', () => {
+      $('profilPanel').style.display = 'none';
     });
 
-    $('saveGoogleCfgBtn').addEventListener('click', () => {
-      localStorage.setItem('google-client-id', $('cfgClientId').value.trim() || DEFAULT_CLIENT_ID);
-      localStorage.setItem('google-project-id', $('cfgProjectId').value.trim() || DEFAULT_PROJECT_ID);
-      $('googleConfigPanel').style.display = 'none';
-      showToast('Configuration Google enregistrée !');
+    $('saveProfilBtn').addEventListener('click', () => {
+      profil = {
+        nom: $('cfgProfilNom').value.trim(),
+        telephone: $('cfgProfilTel').value.trim(),
+        email: $('cfgProfilEmail').value.trim(),
+        portfolio: $('cfgProfilPortfolio').value.trim(),
+        reelAnimation: $('cfgProfilReelAnim').value.trim(),
+        reelRigging: $('cfgProfilReelRig').value.trim(),
+        cv: $('cfgProfilCv').value.trim()
+      };
+      try { lsSet(PROFIL_KEY, JSON.stringify(profil)); } catch (e) { }
+      refreshProfilWarning();
+      if (currentDocEntry) renderDocText();
+      showToast('Profil enregistré !');
     });
 
-    // GESTION DU PANNEAU CLES API IA
+    // GESTION DU PANNEAU CLE API IA
     $('apiKeyBtn').addEventListener('click', () => {
       const panel = $('apiKeysPanel');
-      $('cfgGeminiKey').value = localStorage.getItem('gemini-api-key') || '';
-      $('cfgClaudeKey').value = localStorage.getItem('anthropic-api-key') || '';
+      $('cfgGeminiKey').value = lsGet('gemini-api-key') || '';
       panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     });
 
@@ -1236,11 +1887,22 @@
     });
 
     $('saveApiKeysBtn').addEventListener('click', () => {
-      localStorage.setItem('gemini-api-key', $('cfgGeminiKey').value.trim());
-      localStorage.setItem('anthropic-api-key', $('cfgClaudeKey').value.trim());
+      lsSet('gemini-api-key', $('cfgGeminiKey').value.trim());
       $('apiKeysPanel').style.display = 'none';
-      showToast('Clés API enregistrées !');
+      showToast('Clé API enregistrée !');
     });
+
+    $('clearApiKeysBtn').addEventListener('click', () => {
+      lsRemove('gemini-api-key');
+      $('cfgGeminiKey').value = '';
+      showToast('Clé supprimée de ce navigateur.');
+    });
+
+    // Nettoyage : la clé Anthropic ne doit plus jamais résider dans le navigateur.
+    if (lsGet('anthropic-api-key')) {
+      lsRemove('anthropic-api-key');
+      console.warn('Ancienne clé API Anthropic supprimée du stockage local. Pense à la révoquer sur console.anthropic.com.');
+    }
 
     // GESTION ET CHARGEMENT DYNAMIQUE GOOGLE SHEET
     const SHEET_URL_KEY = 'google-sheet-url';
@@ -1251,7 +1913,7 @@
      */
     function openSheetPanel() {
       const panel = $('sheetConfigPanel');
-      $('cfgSheetUrl').value = localStorage.getItem(SHEET_URL_KEY) || DEFAULT_SHEET_URL;
+      $('cfgSheetUrl').value = lsGet(SHEET_URL_KEY) || DEFAULT_SHEET_URL;
       panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     }
 
@@ -1262,8 +1924,13 @@
      * Why: Gives direct access to the live cloud sheet.
      */
     function handleOpenSheet() {
-      const url = localStorage.getItem(SHEET_URL_KEY) || DEFAULT_SHEET_URL;
-      window.open(url, '_blank');
+      const url = safeUrl(lsGet(SHEET_URL_KEY) || DEFAULT_SHEET_URL);
+      if (!url) {
+        openSheetPanel();
+        showToast("Renseigne d'abord l'URL de ta Google Sheet.");
+        return;
+      }
+      window.open(url, '_blank', 'noopener');
     }
 
     $('sheetOpenBtn').addEventListener('click', handleOpenSheet);
@@ -1271,14 +1938,15 @@
 
     $('saveSheetCfgBtn').addEventListener('click', () => {
       const url = $('cfgSheetUrl').value.trim() || DEFAULT_SHEET_URL;
-      localStorage.setItem(SHEET_URL_KEY, url);
+      lsSet(SHEET_URL_KEY, url);
       $('sheetConfigPanel').style.display = 'none';
       showToast('Lien Google Sheet enregistré !');
     });
 
     $('openSheetCfgBtn').addEventListener('click', () => {
-      const url = $('cfgSheetUrl').value.trim() || localStorage.getItem(SHEET_URL_KEY) || DEFAULT_SHEET_URL;
-      window.open(url, '_blank');
+      const url = safeUrl($('cfgSheetUrl').value.trim() || lsGet(SHEET_URL_KEY) || DEFAULT_SHEET_URL);
+      if (!url) { showToast("Renseigne d'abord une URL valide."); return; }
+      window.open(url, '_blank', 'noopener');
     });
 
     $('closeSheetCfgBtn').addEventListener('click', () => {
@@ -1292,7 +1960,12 @@
      * @param {string} delimiter - Delimiter character (comma or tab)
      * @returns {string[][]} Array of row arrays
      */
-    function parseCSV(text, delimiter = ',') {
+    function parseCSV(text, delimiter) {
+      if (!delimiter) {
+        // Sniff on the first line only: a note containing a tab must not split a comma-separated row.
+        const firstLine = text.split(/\r?\n/, 1)[0] || '';
+        delimiter = firstLine.split('\t').length > firstLine.split(',').length ? '\t' : ',';
+      }
       const lines = [];
       let row = [];
       let field = '';
@@ -1309,7 +1982,7 @@
           } else {
             inQuotes = !inQuotes;
           }
-        } else if ((c === delimiter || c === '\t') && !inQuotes) {
+        } else if (c === delimiter && !inQuotes) {
           row.push(field.trim());
           field = '';
         } else if ((c === '\r' || c === '\n') && !inQuotes) {
@@ -1329,38 +2002,23 @@
       return lines;
     }
 
-    /**
-     * Fetches entries directly from a published or shared Google Sheet via GVIZ CSV export.
-     * Why: Replaces manual copy-pasting by fetching sheet data automatically into local storage.
-     * @param {string} [customUrl] - Optional URL override
+    /*
+     * La lecture réseau de la Google Sheet (export CSV via /gviz/tq) a été retirée :
+     * elle imposait de publier la feuille sur le web, rendant les notes d'entretien et les
+     * coordonnées des recruteurs lisibles par quiconque connaît l'URL. Le même aller-retour
+     * se fait désormais hors ligne, feuille privée : Fichier > Télécharger > CSV, puis
+     * « 📂 Importer (JSON / CSV) », qui passe par rowsToEntries() ci-dessous.
      */
-    async function fetchGoogleSheetData(customUrl) {
-      const targetUrl = customUrl || localStorage.getItem(SHEET_URL_KEY) || DEFAULT_SHEET_URL;
-      
-      const idMatch = targetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-      if (!idMatch) {
-        showToast("URL Google Sheet invalide.");
-        openSheetPanel();
-        return;
-      }
-      const spreadsheetId = idMatch[1];
-      const gidMatch = targetUrl.match(/gid=([0-9]+)/);
-      const gid = gidMatch ? gidMatch[1] : '0';
 
-      const csvExportUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
-      showToast("Chargement de la Google Sheet...");
-
-      try {
-        const res = await fetch(csvExportUrl);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const csvText = await res.text();
-        
-        const rows = parseCSV(csvText);
-        if (rows.length < 2) {
-          showToast("Aucune donnée trouvée dans la feuille.");
-          return;
-        }
-
+    /**
+     * Maps spreadsheet rows (header row first) onto candidature entries.
+     * Why: shared by the live Google Sheet fetch and by the offline CSV file import, so a
+     * private sheet downloaded as CSV round-trips exactly like a published one.
+     * @param {string[][]} rows - Parsed rows, first row being the header
+     * @returns {Object[]} Entries ready to be merged
+     */
+    function rowsToEntries(rows) {
+      {
         const headers = rows[0].map(h => h.toLowerCase().trim());
         const getIdx = (candidates) => headers.findIndex(h => candidates.some(c => h.includes(c)));
 
@@ -1377,7 +2035,12 @@
         const idxDateEntretien = getIdx(['entretien', 'date entretien']);
         const idxNotes = getIdx(['notes', 'remarques', 'commentaire']);
         const idxLien = getIdx(['lien', 'url', 'annonce']);
-        const idxContact = getIdx(['contact', 'recruteur', 'email']);
+        const idxAccroche = getIdx(['accroche']);
+        // Deux colonnes distinctes : « Contact » (nom) et « Email contact ». Sans l'exclusion
+        // explicite d'« email », la colonne nom capterait les deux et l'adresse serait perdue.
+        const idxContactEmail = headers.findIndex(h => h.includes('email') || h.includes('mail'));
+        const idxContact = headers.findIndex((h, i) => i !== idxContactEmail
+          && (h.includes('contact') || h.includes('recruteur')));
 
         const importedEntries = [];
 
@@ -1403,86 +2066,173 @@
           const argsRaw = idxArguments >= 0 ? r[idxArguments] : '';
           const argumentsLettre = argsRaw ? argsRaw.split(/[,|•;\n]/).map(s => s.trim()).filter(Boolean) : [];
 
+          const contactRaw = idxContact >= 0 ? (r[idxContact] || '') : '';
+          const emailRaw = idxContactEmail >= 0 ? (r[idxContactEmail] || '') : '';
+          // Une feuille rédigée à la main peut n'avoir qu'une colonne « Contact » contenant l'adresse.
+          const isEmail = !emailRaw && /@/.test(contactRaw);
+
           importedEntries.push({
-            id: 'e' + Date.now() + Math.random().toString(36).substr(2, 4),
+            id: uid('e'),
             studio: studio || 'Studio non spécifié',
             poste: poste || 'Poste non spécifié',
             reel: reel,
             priorite: priorite,
             motsCles: motsCles,
             argumentsLettre: argumentsLettre,
-            statut: (idxStatut >= 0 && r[idxStatut]) ? r[idxStatut] : 'À traiter',
+            statut: normalizeStatut(idxStatut >= 0 ? r[idxStatut] : ''),
             dateEnvoi: idxDateEnvoi >= 0 ? r[idxDateEnvoi] : '',
             relance: idxRelance >= 0 ? r[idxRelance] : '',
             dateReponse: idxDateReponse >= 0 ? r[idxDateReponse] : '',
             dateEntretien: idxDateEntretien >= 0 ? r[idxDateEntretien] : '',
             notesEntretien: idxNotes >= 0 ? r[idxNotes] : '',
             lien: idxLien >= 0 ? r[idxLien] : '',
-            contact: idxContact >= 0 ? r[idxContact] : ''
+            accroche: idxAccroche >= 0 ? (r[idxAccroche] || '') : '',
+            contact: isEmail ? '' : contactRaw,
+            contactEmail: emailRaw || (isEmail ? contactRaw : '')
           });
         }
 
-        if (importedEntries.length > 0) {
-          entries = importedEntries;
-          saveEntries();
-          render();
-          showToast(`${importedEntries.length} candidatures chargées depuis Google Sheet !`);
-        } else {
-          showToast("Aucune candidature valide n'a pu être extraite.");
-        }
-      } catch (err) {
-        console.error(err);
-        showToast("Erreur d'accès à la Sheet (vérifiez qu'elle est partagée).");
+        return importedEntries;
       }
     }
 
-    $('fetchSheetDataBtn').addEventListener('click', () => fetchGoogleSheetData());
-    $('fetchSheetCfgBtn').addEventListener('click', () => fetchGoogleSheetData());
+    /**
+     * Merges incoming entries into the local list without ever destroying existing data.
+     * Why: the previous behaviour was `entries = imported`, which wiped months of tracking
+     * on a single click. Duplicates are detected on studio+poste.
+     * @param {Object[]} incoming - Entries to merge in
+     * @param {string} sourceLabel - Human name of the source, used in the prompt
+     * @returns {number|null} Number of entries added, or null when the user cancelled
+     */
+    function mergeEntries(incoming, sourceLabel) {
+      const existing = new Set(entries.map(entryKey));
+      const fresh = incoming.filter(e => !existing.has(entryKey(e)));
+      const dupes = incoming.length - fresh.length;
+
+      if (entries.length > 0) {
+        const msg = `Importer depuis ${sourceLabel} ?\n\n`
+          + `• ${fresh.length} nouvelle(s) candidature(s) seront ajoutées\n`
+          + `• ${dupes} déjà présente(s) seront ignorées\n`
+          + `• Tes ${entries.length} dossier(s) actuels sont conservés\n\n`
+          + `Annule si tu préfères d'abord faire une sauvegarde JSON.`;
+        if (!confirm(msg)) return null;
+      }
+
+      entries = fresh.concat(entries);
+      saveEntries();
+      render();
+      return fresh.length;
+    }
+
+    // SAUVEGARDE ET RESTAURATION DU SUIVI
+    $('exportEntriesBtn').addEventListener('click', () => {
+      if (entries.length === 0) {
+        showToast('Aucun dossier à sauvegarder.');
+        return;
+      }
+      downloadJSON({ version: 1, exportedAt: new Date().toISOString(), profil, entries },
+        `hippojob_suivi_${todayISO()}.json`);
+      showToast(`${entries.length} dossiers sauvegardés.`);
+    });
+
+    $('importEntriesBtn').addEventListener('click', () => $('importEntriesFile').click());
+
+    $('importEntriesFile').addEventListener('change', (ev) => {
+      const file = ev.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          // CSV/TSV : fichier téléchargé depuis une Google Sheet privée (Fichier > Télécharger).
+          if (/\.(csv|tsv)$/i.test(file.name)) {
+            const rows = parseCSV(e.target.result);
+            if (rows.length < 2) { showToast('Fichier vide ou sans ligne d\'en-tête.'); return; }
+            const incoming = rowsToEntries(rows);
+            if (incoming.length === 0) { showToast("Aucune candidature reconnue dans ce fichier."); return; }
+            const n = mergeEntries(incoming, 'ce fichier CSV');
+            if (n !== null) showToast(`${n} candidature(s) importée(s) depuis le CSV.`);
+            return;
+          }
+
+          const parsed = JSON.parse(e.target.result);
+          const list = Array.isArray(parsed) ? parsed : parsed.entries;
+          if (!Array.isArray(list)) throw new Error('format');
+          const cleaned = list.map(x => ({
+            id: x.id || uid('e'),
+            studio: x.studio || 'Studio non spécifié',
+            poste: x.poste || 'Poste non spécifié',
+            reel: x.reel === 'Rigging' ? 'Rigging' : 'Animation',
+            priorite: ['Haute', 'Moyenne', 'Basse'].includes(x.priorite) ? x.priorite : 'Moyenne',
+            motsCles: Array.isArray(x.motsCles) ? x.motsCles : [],
+            argumentsLettre: Array.isArray(x.argumentsLettre) ? x.argumentsLettre : [],
+            statut: normalizeStatut(x.statut),
+            dateEnvoi: x.dateEnvoi || '', relance: x.relance || '',
+            dateReponse: x.dateReponse || '', dateEntretien: x.dateEntretien || '',
+            notesEntretien: x.notesEntretien || '', lien: x.lien || '',
+            accroche: x.accroche || '', prepaEntretien: x.prepaEntretien || '',
+            contact: x.contact || '', contactEmail: x.contactEmail || ''
+          }));
+          const added = mergeEntries(cleaned, 'cette sauvegarde');
+          if (added === null) return;
+          if (parsed.profil && confirm('Restaurer aussi le profil (coordonnées, liens) contenu dans cette sauvegarde ?')) {
+            profil = Object.assign({}, DEFAULT_PROFIL, parsed.profil);
+            try { lsSet(PROFIL_KEY, JSON.stringify(profil)); } catch (err) { }
+          }
+          showToast(`${added} dossier(s) restauré(s).`);
+        } catch (err) {
+          showToast('Fichier de sauvegarde invalide.');
+        }
+      };
+      reader.readAsText(file);
+      ev.target.value = '';
+    });
 
     // GESTION DES MODÈLES ET DU GÉNÉRATEUR DE DOCUMENTS
     const TPL_LETTRE_KEY = 'tpl-lettre';
     const TPL_MAIL_ENVOI_KEY = 'tpl-mail-envoi';
     const TPL_MAIL_RELANCE_KEY = 'tpl-mail-relance';
 
-    const DEFAULT_TPL_LETTRE = `Objet : Candidature {poste} – Hippolyte Combault
+    const DEFAULT_TPL_LETTRE = `Objet : Candidature {poste} – {nom}
 
 Bonjour {contact},
 
-Fraîchement diplômé de Rubika, je suis depuis longtemps le travail de {studio} et j'ai beaucoup d'admiration pour vos projets. Je vous écris aujourd'hui car je suis très motivé par votre offre de poste de {poste}.
+Fraîchement diplômé de Rubika, je vous écris au sujet de votre offre de poste de {poste}.
 
-Le rig est l'une de mes spécialités, mais j'ai aussi une vraie passion pour l'animation 3D. Pour mon film de fin d'études, Icefall, j'étais à la fois Lead Rigger et Lead Animateur au sein d'une équipe de six. Cette expérience a été très formatrice : elle m'a appris à créer des rigs pensés pour les animateurs, parce que je connais bien les contraintes et les besoins qu'ils rencontrent au quotidien.
+{accroche}
+
+Le rig est ma spécialité, sans que j'aie jamais lâché l'animation : je conçois mes setups en sachant ce qu'on attend d'eux une fois entre les mains d'un animateur.
 
 {argumentsLettre}
 
-À terme, mon objectif est de travailler en tant qu'animateur 3D, mais je suis convaincu que mon profil de rigger est un vrai atout pour intégrer votre studio et contribuer efficacement à votre pipeline dès maintenant.
+Mon objectif à terme est l'animation, et c'est précisément ce qui rend mon profil de rigger utile à votre pipeline dès maintenant. Basé à Paris, je suis mobile et je privilégie le présentiel.
 
-Je suis actuellement basé à Paris, mais je suis tout à fait prêt à déménager. Je privilégie le présentiel, car j'aime le contact direct et l'échange avec les équipes pour avancer sur les projets.
-
-Je serais ravi de vous montrer mon travail et d'échanger avec vous. Merci d'avoir pris le temps de lire ma candidature.
+Je serais ravi de vous montrer mon travail. Merci du temps que vous accorderez à ma candidature.
 
 À bientôt,
 
-Hippolyte Combault
-06 00 00 00 00
-https://hippolytecombault.com (Portfolio & Reel)`;
+{nom}
+{telephone}
+{portfolio}
+Demo reel : {lienReel}`;
 
-    const DEFAULT_TPL_MAIL_ENVOI = `Objet : Candidature {poste} - Hippolyte Combault
+    const DEFAULT_TPL_MAIL_ENVOI = `Objet : Candidature {poste} - {nom}
 
 Bonjour {contact},
 
 Veuillez trouver ci-joint ma candidature pour le poste de {poste} au sein de {studio}.
 
 Passionné par l'animation 3D et le rigging (diplômé de Rubika), vous trouverez ma lettre de motivation et mon portfolio/demo reel ci-dessous :
-🔗 Portfolio & Reel : https://hippolytecombault.com
+🔗 Profil : {portfolio}
+🎬 Demo reel : {lienReel}
 
 {argumentsLettre}
 
 Je reste à votre disposition pour échanger de vive voix.
 
 Bien cordialement,
-Hippolyte Combault`;
+{nom}`;
 
-    const DEFAULT_TPL_MAIL_RELANCE = `Objet : Relance - Candidature {poste} - Hippolyte Combault
+    const DEFAULT_TPL_MAIL_RELANCE = `Objet : Relance - Candidature {poste} - {nom}
 
 Bonjour {contact},
 
@@ -1493,7 +2243,7 @@ Toujours extrêmement enthousiasmé par vos productions et très motivé à l'id
 En vous remerciant par avance pour votre attention,
 
 Bien cordialement,
-Hippolyte Combault`;
+{nom}`;
 
     const PRESETS = {
       classique: {
@@ -1502,13 +2252,15 @@ Hippolyte Combault`;
         relance: DEFAULT_TPL_MAIL_RELANCE
       },
       rigging: {
-        lettre: `Objet : Candidature {poste} (Lead Rigger / TD Rig) – Hippolyte Combault
+        lettre: `Objet : Candidature {poste} (Lead Rigger / TD Rig) – {nom}
 
 Bonjour {contact},
 
 Spécialiste du rigging 3D diplômé de Rubika, je souhaite proposer ma candidature pour le poste de {poste} au sein de {studio}.
 
-Fort d'une solide expérience sur Maya et Python (création d'auto-rigs, de modules de skel/skin et d'outils pipeline), j'ai dirigé le département rigging sur le court-métrage Icefall. Ma double compétence en animation me permet de concevoir des setups intuitifs et solides, facilitant le travail quotidien des anims.
+{accroche}
+
+Maya et Python au quotidien : auto-rigs, modules de skel/skin, outils de pipeline. Ma double compétence en animation me sert à concevoir des setups que les anims n'ont pas à contourner.
 
 {argumentsLettre}
 
@@ -1517,83 +2269,92 @@ Fort d'une solide expérience sur Maya et Python (création d'auto-rigs, de modu
 Disponible immédiatement en présentiel ou hybride, je serais ravi d'échanger sur l'intégration de mon profil dans vos productions.
 
 Cordialement,
-Hippolyte Combault
-06 00 00 00 00
-https://hippolytecombault.com`,
-        envoi: `Objet : Candidature {poste} - Rigging & Pipeline - Hippolyte Combault
+{nom}
+{telephone}
+{portfolio}
+Demo reel : {lienReel}`,
+        envoi: `Objet : Candidature {poste} - Rigging & Pipeline - {nom}
 
 Bonjour {contact},
 
 Veuillez trouver ci-joint ma candidature pour le poste de {poste} chez {studio}.
 
 Rigger 3D issu de Rubika, je développe des setups réactifs et optimisés pour les besoins de la production :
-🔗 Demo Reel & Portfolio : https://hippolytecombault.com
+🔗 Profil : {portfolio}
+🎬 Demo reel : {lienReel}
 
 {argumentsLettre}
 
 Au plaisir d'échanger prochainement,
-Hippolyte Combault`,
+{nom}`,
         relance: DEFAULT_TPL_MAIL_RELANCE
       },
       animation: {
-        lettre: `Objet : Candidature {poste} (Animateur 3D) – Hippolyte Combault
+        lettre: `Objet : Candidature {poste} (Animateur 3D) – {nom}
 
 Bonjour {contact},
 
-Passionné par le acting, le body mechanics et la mise en scène 3D, je pose avec enthousiasme ma candidature pour le poste de {poste} au sein de {studio}.
+Diplômé de Rubika, attaché à l'acting et au body mechanics, je pose ma candidature pour le poste de {poste} au sein de {studio}.
 
-Diplômé de Rubika, j'ai exercé comme Lead Animateur sur le film Icefall. Ma maîtrise du rigging m'offre une très grande autonomie technique pour résoudre les problèmes d'anatomie ou d'interpenetration directement en cours de shot.
+{accroche}
+
+Ma maîtrise du rigging me donne l'autonomie de régler un problème d'anatomie ou d'interpénétration en cours de shot, sans bloquer sur un ticket.
 
 {argumentsLettre}
 
 Je me tiens à votre entière disposition pour vous présenter mon Demo Reel et échanger sur vos futurs projets.
 
 Bien à vous,
-Hippolyte Combault
-https://hippolytecombault.com`,
-        envoi: `Objet : Candidature {poste} - Animation 3D - Hippolyte Combault
+{nom}
+{portfolio}
+Demo reel : {lienReel}`,
+        envoi: `Objet : Candidature {poste} - Animation 3D - {nom}
 
 Bonjour {contact},
 
 Je vous adresse ma candidature pour le poste de {poste} au sein de {studio}.
 
 Voici le lien direct vers mon Demo Reel d'animation :
-🔗 https://hippolytecombault.com
+🔗 Profil : {portfolio}
+🎬 Demo reel : {lienReel}
 
 {argumentsLettre}
 
 Bien cordialement,
-Hippolyte Combault`,
+{nom}`,
         relance: DEFAULT_TPL_MAIL_RELANCE
       },
       court: {
-        lettre: `Objet : Candidature {poste} – Hippolyte Combault
+        lettre: `Objet : Candidature {poste} – {nom}
 
 Bonjour {contact},
 
 Diplômé de Rubika (Animation 3D / Rigging), je réponds à votre offre pour le poste de {poste} chez {studio}.
 
-Atouts clés :
+{accroche}
+
 {argumentsLettre}
 
-Reel & Portfolio : https://hippolytecombault.com
+{portfolio}
+Demo reel : {lienReel}
 
 Restant à votre entière disposition pour un entretien.
 
 Cordialement,
-Hippolyte Combault`,
-        envoi: `Objet : Candidature {poste} – Hippolyte Combault
+{nom}`,
+        envoi: `Objet : Candidature {poste} – {nom}
 
 Bonjour {contact},
 
 Candidature pour le poste de {poste} au sein de {studio}.
 
-🔗 Reel & Portfolio : https://hippolytecombault.com
+🔗 Profil : {portfolio}
+🎬 Demo reel : {lienReel}
 
 {argumentsLettre}
 
 Bien cordialement,
-Hippolyte Combault`,
+{nom}`,
         relance: DEFAULT_TPL_MAIL_RELANCE
       }
     };
@@ -1602,11 +2363,15 @@ Hippolyte Combault`,
 
     $('templateConfigBtn').addEventListener('click', () => {
       const panel = $('templateConfigPanel');
-      $('cfgTplLettre').value = localStorage.getItem(TPL_LETTRE_KEY) || DEFAULT_TPL_LETTRE;
-      $('cfgTplMailEnvoi').value = localStorage.getItem(TPL_MAIL_ENVOI_KEY) || DEFAULT_TPL_MAIL_ENVOI;
-      $('cfgTplMailRelance').value = localStorage.getItem(TPL_MAIL_RELANCE_KEY) || DEFAULT_TPL_MAIL_RELANCE;
+      $('cfgTplLettre').value = lsGet(TPL_LETTRE_KEY) || DEFAULT_TPL_LETTRE;
+      $('cfgTplMailEnvoi').value = lsGet(TPL_MAIL_ENVOI_KEY) || DEFAULT_TPL_MAIL_ENVOI;
+      $('cfgTplMailRelance').value = lsGet(TPL_MAIL_RELANCE_KEY) || DEFAULT_TPL_MAIL_RELANCE;
       panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
       activeTplTextarea = $('cfgTplLettre');
+      // Un modèle enregistré avant l'ajout de {accroche} n'en bénéficie pas silencieusement.
+      if (!$('cfgTplLettre').value.includes('{accroche}')) {
+        showToast("Ton modèle de lettre n'utilise pas encore {accroche} — insère-la pour personnaliser par studio.");
+      }
     });
 
     ['cfgTplLettre', 'cfgTplMailEnvoi', 'cfgTplMailRelance'].forEach(id => {
@@ -1652,17 +2417,17 @@ Hippolyte Combault`,
     });
 
     $('saveTplBtn').addEventListener('click', () => {
-      localStorage.setItem(TPL_LETTRE_KEY, $('cfgTplLettre').value.trim() || DEFAULT_TPL_LETTRE);
-      localStorage.setItem(TPL_MAIL_ENVOI_KEY, $('cfgTplMailEnvoi').value.trim() || DEFAULT_TPL_MAIL_ENVOI);
-      localStorage.setItem(TPL_MAIL_RELANCE_KEY, $('cfgTplMailRelance').value.trim() || DEFAULT_TPL_MAIL_RELANCE);
+      lsSet(TPL_LETTRE_KEY, $('cfgTplLettre').value.trim() || DEFAULT_TPL_LETTRE);
+      lsSet(TPL_MAIL_ENVOI_KEY, $('cfgTplMailEnvoi').value.trim() || DEFAULT_TPL_MAIL_ENVOI);
+      lsSet(TPL_MAIL_RELANCE_KEY, $('cfgTplMailRelance').value.trim() || DEFAULT_TPL_MAIL_RELANCE);
       $('templateConfigPanel').style.display = 'none';
       showToast('Modèles de textes enregistrés !');
     });
 
     $('resetTplBtn').addEventListener('click', () => {
-      localStorage.removeItem(TPL_LETTRE_KEY);
-      localStorage.removeItem(TPL_MAIL_ENVOI_KEY);
-      localStorage.removeItem(TPL_MAIL_RELANCE_KEY);
+      lsRemove(TPL_LETTRE_KEY);
+      lsRemove(TPL_MAIL_ENVOI_KEY);
+      lsRemove(TPL_MAIL_RELANCE_KEY);
       $('cfgTplLettre').value = DEFAULT_TPL_LETTRE;
       $('cfgTplMailEnvoi').value = DEFAULT_TPL_MAIL_ENVOI;
       $('cfgTplMailRelance').value = DEFAULT_TPL_MAIL_RELANCE;
@@ -1677,9 +2442,9 @@ Hippolyte Combault`,
      * Why: Pre-fills and compiles cover letters and emails dynamically.
      * @param {Object} entry - Job candidature entry
      */
-    function openDocGenerator(entry) {
+    function openDocGenerator(entry, tab) {
       currentDocEntry = entry;
-      currentDocTab = 'lettre';
+      currentDocTab = tab || 'lettre';
       updateDocTabButtons();
       renderDocText();
       $('docGeneratorPanel').style.display = 'block';
@@ -1690,14 +2455,63 @@ Hippolyte Combault`,
       $('tabBtnLettre').classList.toggle('active', currentDocTab === 'lettre');
       $('tabBtnMailEnvoi').classList.toggle('active', currentDocTab === 'mailEnvoi');
       $('tabBtnMailRelance').classList.toggle('active', currentDocTab === 'mailRelance');
+      $('tabBtnPrepa').classList.toggle('active', currentDocTab === 'prepa');
+
+      // L'onglet Prépa n'est pas un document à envoyer : les actions d'envoi n'y ont pas de sens.
+      const prepa = currentDocTab === 'prepa';
+      $('prepaToolbar').style.display = prepa ? 'block' : 'none';
+      $('genVarToolbar').style.display = prepa ? 'none' : 'block';
+      $('openMailtoBtn').style.display = prepa ? 'none' : 'inline-block';
+      $('markSentBtn').style.display = prepa ? 'none' : 'inline-block';
     }
 
     /**
      * Compiles template variables into human-formatted text for the active document generator tab.
      * Why: Formats list attributes (like arguments and keywords) neatly into bullet points or paragraphs.
      */
+    /**
+     * Substitutes {variables} line by line, dropping label-only lines left by empty values.
+     * Why: a template line such as "🔗 Demo Reel : {lienReel}" must vanish entirely when no
+     * reel URL is set, instead of exporting a dangling "🔗 Demo Reel :" in the candidature.
+     * A line is dropped only when it carried variables, ALL of them resolved to empty, and
+     * what remains is a label ending in ':' or pure punctuation — so a heading like
+     * "Atouts clés :" introducing a list, which holds no variable, is always preserved.
+     * @param {string} tpl - Raw template
+     * @param {Object<string,string>} vars - Variable name to replacement value
+     * @returns {string} Compiled text
+     */
+    function compileTemplate(tpl, vars) {
+      return tpl.split('\n').map(line => {
+        const found = line.match(/\{([a-zA-Z]+)\}/g) || [];
+        const substituted = line.replace(/\{([a-zA-Z]+)\}/g,
+          (whole, name) => Object.prototype.hasOwnProperty.call(vars, name) ? vars[name] : whole);
+
+        if (found.length === 0) return substituted;
+
+        const allEmpty = found.every(v => {
+          const name = v.slice(1, -1);
+          return Object.prototype.hasOwnProperty.call(vars, name) && vars[name] === '';
+        });
+        if (!allEmpty) return substituted;
+
+        const rest = substituted.trim();
+        const isLabelOnly = rest === '' || /:$/.test(rest) || !/[\p{L}\p{N}]/u.test(rest);
+        return isLabelOnly ? null : substituted;
+      }).filter(l => l !== null).join('\n');
+    }
+
     function renderDocText() {
       if (!currentDocEntry) return;
+
+      if (currentDocTab === 'prepa') {
+        $('genDocText').value = currentDocEntry.prepaEntretien || '';
+        $('docGenTitle').textContent = `Prépa entretien — ${currentDocEntry.studio}`;
+        $('docGenWarning').textContent = currentDocEntry.prepaEntretien
+          ? ''
+          : "Dossier vide : copie le prompt de recherche ci-dessous, puis colle la réponse ici.";
+        return;
+      }
+
       const studio = currentDocEntry.studio || 'votre studio';
       const poste = currentDocEntry.poste || 'poste de création';
       const reel = currentDocEntry.reel || 'Animation / Rigging';
@@ -1706,10 +2520,13 @@ Hippolyte Combault`,
       const dateEnvoi = currentDocEntry.dateEnvoi || todayISO();
       const dateRelance = currentDocEntry.relance || plusDaysISO(7);
 
-      const argsArr = currentDocEntry.argumentsLettre || [];
-      const argsStr = argsArr.length > 0
-        ? argsArr.map(a => `• ${a}`).join('\n')
-        : '';
+      const argsArr = (currentDocEntry.argumentsLettre || []).filter(Boolean);
+      // Dans une lettre, une liste à puces au milieu d'un texte suivi fait bricolage : les
+      // arguments sont donc coulés en paragraphe. Dans un mail, les puces restent lisibles.
+      const argsStr = argsArr.length === 0 ? ''
+        : currentDocTab === 'lettre'
+          ? argsArr.map(a => a.trim().replace(/[.;]$/, '') + '.').join(' ')
+          : argsArr.map(a => `• ${a.trim()}`).join('\n');
 
       const kwArr = currentDocEntry.motsCles || [];
       const kwStr = kwArr.length > 0
@@ -1718,31 +2535,73 @@ Hippolyte Combault`,
 
       let tpl = '';
       if (currentDocTab === 'lettre') {
-        tpl = localStorage.getItem(TPL_LETTRE_KEY) || DEFAULT_TPL_LETTRE;
+        tpl = lsGet(TPL_LETTRE_KEY) || DEFAULT_TPL_LETTRE;
       } else if (currentDocTab === 'mailEnvoi') {
-        tpl = localStorage.getItem(TPL_MAIL_ENVOI_KEY) || DEFAULT_TPL_MAIL_ENVOI;
+        tpl = lsGet(TPL_MAIL_ENVOI_KEY) || DEFAULT_TPL_MAIL_ENVOI;
       } else if (currentDocTab === 'mailRelance') {
-        tpl = localStorage.getItem(TPL_MAIL_RELANCE_KEY) || DEFAULT_TPL_MAIL_RELANCE;
+        tpl = lsGet(TPL_MAIL_RELANCE_KEY) || DEFAULT_TPL_MAIL_RELANCE;
       }
 
-      const compiled = tpl
-        .replace(/{studio}/g, studio)
-        .replace(/{poste}/g, poste)
-        .replace(/{reel}/g, reel)
-        .replace(/{contact}/g, contact)
-        .replace(/{lien}/g, lien)
-        .replace(/{argumentsLettre}/g, argsStr)
-        .replace(/{motsCles}/g, kwStr)
-        .replace(/{dateEnvoi}/g, dateEnvoi)
-        .replace(/{dateRelance}/g, dateRelance);
+      const vars = {
+        studio, poste, reel, contact, lien,
+        accroche: currentDocEntry.accroche || '',
+        argumentsLettre: argsStr,
+        motsCles: kwStr,
+        dateEnvoi: formatDateFr(dateEnvoi),
+        dateRelance: formatDateFr(dateRelance),
+        nom: profil.nom || '',
+        telephone: profil.telephone || '',
+        email: profil.email || '',
+        portfolio: profil.portfolio || '',
+        lienReel: reelUrlFor(currentDocEntry),
+        reelAnimation: profil.reelAnimation || '',
+        reelRigging: profil.reelRigging || '',
+        cv: profil.cv || ''
+      };
 
-      $('genDocText').value = compiled;
+      const compiled = compileTemplate(tpl, vars);
+
+      // Une variable vide (accroche non renseignée, arguments absents) laisse une ligne
+      // orpheline : on recompacte pour ne jamais exporter un trou dans la mise en page.
+      $('genDocText').value = compiled.replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
       $('docGenTitle').textContent = `Document — ${studio} (${poste})`;
+
+      const warnings = [];
+      const missing = missingProfilFields();
+      if (missing.length) warnings.push(`Profil incomplet (${missing.join(', ')}) — clique sur « 👤 Profil ».`);
+      if (!currentDocEntry.contact) warnings.push('Pas de nom de contact : la lettre commencera par une formule impersonnelle.');
+      if (currentDocTab !== 'lettre' && !currentDocEntry.contactEmail) warnings.push("Pas d'email de contact : le mail s'ouvrira sans destinataire.");
+      if (currentDocTab === 'mailRelance' && !currentDocEntry.dateEnvoi) warnings.push("Cette candidature n'a jamais été marquée comme envoyée : la date affichée est celle d'aujourd'hui. Corrige-la avant d'envoyer une relance.");
+      if (/\{[a-zA-Z]+\}/.test(compiled)) warnings.push('Il reste des variables non remplacées dans le texte — relis avant envoi.');
+      $('docGenWarning').textContent = warnings.join(' ');
     }
 
     $('tabBtnLettre').addEventListener('click', () => { currentDocTab = 'lettre'; updateDocTabButtons(); renderDocText(); });
     $('tabBtnMailEnvoi').addEventListener('click', () => { currentDocTab = 'mailEnvoi'; updateDocTabButtons(); renderDocText(); });
     $('tabBtnMailRelance').addEventListener('click', () => { currentDocTab = 'mailRelance'; updateDocTabButtons(); renderDocText(); });
+    $('tabBtnPrepa').addEventListener('click', () => { currentDocTab = 'prepa'; updateDocTabButtons(); renderDocText(); });
+
+    $('copyPrepaPromptBtn').addEventListener('click', () => {
+      if (currentDocEntry) copyPrepPrompt(currentDocEntry);
+    });
+
+    $('savePrepaBtn').addEventListener('click', () => {
+      if (!currentDocEntry) return;
+      currentDocEntry.prepaEntretien = $('genDocText').value;
+      saveEntries();
+      render();
+      $('docGenWarning').textContent = '';
+      showToast('Dossier de préparation enregistré.');
+    });
+
+    // Filet de sécurité : le dossier de prépa est du texte saisi à la main, on ne le perd
+    // pas parce que l'onglet a été changé sans cliquer sur « Enregistrer ».
+    $('genDocText').addEventListener('input', () => {
+      if (currentDocTab === 'prepa' && currentDocEntry) {
+        currentDocEntry.prepaEntretien = $('genDocText').value;
+        saveEntries();
+      }
+    });
 
     $('closeDocGenBtn').addEventListener('click', () => {
       $('docGeneratorPanel').style.display = 'none';
@@ -1759,8 +2618,25 @@ Hippolyte Combault`,
       const lines = text.split('\n');
       const subject = lines[0].startsWith('Objet :') ? lines[0].replace('Objet :', '').trim() : `Candidature ${currentDocEntry?.poste || ''}`;
       const body = lines.slice(1).join('\n').trim();
-      const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.open(mailtoUrl, '_blank');
+      const to = (currentDocEntry?.contactEmail || '').trim();
+      if (!to && !confirm("Aucun email de contact n'est renseigné pour ce dossier.\n\nOuvrir quand même le client mail avec un destinataire vide ?")) {
+        return;
+      }
+      // L'arobase est encodée en %40 par encodeURIComponent ; certains clients mail
+      // (Outlook notamment) ne la décodent pas et affichent une adresse invalide.
+      const encodedTo = encodeURIComponent(to).replace(/%40/g, '@');
+      const mailtoUrl = `mailto:${encodedTo}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+      // Au-delà d'environ 2000 caractères, l'URL est tronquée en silence par plusieurs clients.
+      if (mailtoUrl.length > 1900 && !confirm(
+        "Ce texte est long : ton client mail risque de le tronquer sans prévenir.\n\n"
+        + "Mieux vaut cliquer « 📋 Copier le texte » et coller dans un mail vierge.\n\n"
+        + "Ouvrir quand même le client mail ?")) {
+        return;
+      }
+
+      // location.href plutôt que window.open : un mailto: dans un nouvel onglet laisse une fenêtre blanche.
+      window.location.href = mailtoUrl;
     });
 
     $('downloadDocxBtn').addEventListener('click', async () => {
@@ -1787,7 +2663,10 @@ Hippolyte Combault`,
         });
 
         const blob = await docxLib.Packer.toBlob(doc);
-        const fileName = `Lettre_Motivation_${currentDocEntry.studio.replace(/[^a-zA-Z0-9]/g, '_')}_${currentDocEntry.poste.replace(/[^a-zA-Z0-9]/g, '_')}.docx`;
+        const kind = currentDocTab === 'lettre' ? 'Lettre_Motivation'
+          : currentDocTab === 'mailRelance' ? 'Mail_Relance'
+            : currentDocTab === 'prepa' ? 'Prepa_Entretien' : 'Mail_Candidature';
+        const fileName = `${kind}_${currentDocEntry.studio.replace(/[^a-zA-Z0-9]/g, '_')}_${currentDocEntry.poste.replace(/[^a-zA-Z0-9]/g, '_')}.docx`;
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -1803,34 +2682,53 @@ Hippolyte Combault`,
 
     $('markSentBtn').addEventListener('click', () => {
       if (!currentDocEntry) return;
-      currentDocEntry.statut = currentDocTab === 'mailRelance' ? 'Relancé' : 'Envoyé';
+      const isRelance = currentDocTab === 'mailRelance';
+      currentDocEntry.statut = isRelance ? 'Relancé' : 'Envoyé';
       if (!currentDocEntry.dateEnvoi) currentDocEntry.dateEnvoi = todayISO();
-      currentDocEntry.relance = plusDaysISO(7);
+      // Une relance repousse l'échéance plus loin (14 j) : sinon on se relance en boucle tous les 7 jours.
+      currentDocEntry.relance = plusDaysISO(isRelance ? 14 : 7);
       saveEntries();
       render();
       showToast(`Candidature chez ${currentDocEntry.studio} mise à jour en '${currentDocEntry.statut}' !`);
     });
 
     $('sendSheetBtn').addEventListener('click', () => {
-      const url = localStorage.getItem(SHEET_URL_KEY);
-      if (!url) {
-        openSheetPanel();
-        showToast('Configurez votre Google Sheet pour la synchro');
-        return;
-      }
-      showToast('Copié dans le presse-papier pour synchro');
       $('copyAllBtn').click();
+      showToast('Copié — colle dans la cellule A1 de ta feuille (Ctrl+V).');
     });
 
     $('copyAllBtn').addEventListener('click', () => {
-      const header = ['Studio', 'Poste', 'Reel', 'Contact', 'Date Envoi', 'Relance Prévue', 'Lien', 'À mettre en avant'].join('\t');
-      const rows = entries.map(e => [e.studio, e.poste, e.reel, e.contact || '', e.dateEnvoi || '', e.relance || '', e.lien || '', (e.argumentsLettre || []).join(' | ')].join('\t'));
+      // Colonnes alignées sur ce que sait relire rowsToEntries : l'aller-retour Sheets est réversible.
+      const header = ['Studio', 'Poste', 'Reel', 'Priorité', 'Mots-clés', 'À mettre en avant', 'Statut',
+        'Date Envoi', 'Relance', 'Date Réponse', 'Date Entretien', 'Notes', 'Lien', 'Contact', 'Email contact',
+        'Accroche'].join('\t');
+      const clean = (v) => (v || '').toString().replace(/[\t\r\n]+/g, ' ');
+      const rows = entries.map(e => [
+        clean(e.studio), clean(e.poste), clean(e.reel), clean(e.priorite),
+        (e.motsCles || []).join(' | '), (e.argumentsLettre || []).join(' | '),
+        clean(e.statut), clean(e.dateEnvoi), clean(e.relance), clean(e.dateReponse),
+        clean(e.dateEntretien), clean(e.notesEntretien), clean(e.lien),
+        clean(e.contact), clean(e.contactEmail), clean(e.accroche)
+      ].join('\t'));
       copyToClipboard([header, ...rows].join('\n'));
       showToast('Tableau copié (pour Sheets / Notion)');
     });
 
     // IA ET ANALYSE
-    const ANALYSIS_SYSTEM_PROMPT = "Tu es un assistant d'analyse d'offres d'emploi pour l'animation 3D, VFX et jeux vidéo. Réponds UNIQUEMENT sous forme d'objet JSON valide (sans texte ni balises markdown avant/après) avec les clés suivantes : studio (string), poste (string), reel (\"Animation\" ou \"Rigging\"), motsCles (tableau 3-5 strings), priorite (\"Haute\", \"Moyenne\" ou \"Basse\"), note (court résumé), argumentsLettre (tableau 2-4 strings).";
+    const ANALYSIS_SYSTEM_PROMPT = `Tu es un assistant d'analyse d'offres d'emploi pour l'animation 3D, le VFX et le jeu vidéo.
+
+Le candidat : Hippolyte Combault, jeune diplômé de Rubika, double compétence rigging + animation 3D. Lead Rigger ET Lead Animateur sur son film de fin d'études « Icefall » (équipe de six). Maya, Python, auto-rigs, outils de pipeline. Objectif à terme : animateur 3D, mais le rigging est son point d'entrée le plus solide. Basé à Paris, mobile, privilégie le présentiel.
+
+Analyse l'offre fournie et réponds UNIQUEMENT par un objet JSON valide, sans texte ni balise markdown avant ou après, avec exactement ces clés :
+
+- studio (string) : le nom de l'entreprise
+- poste (string) : l'intitulé exact du poste
+- reel ("Animation" ou "Rigging") : lequel des deux reels sert le mieux cette candidature
+- motsCles (tableau de 3 à 5 strings) : les compétences et logiciels exigés par l'annonce
+- priorite ("Haute", "Moyenne" ou "Basse") : Haute si le profil colle vraiment et que le niveau est junior-compatible, Basse si l'offre demande plusieurs années d'expérience ou vise un autre métier
+- note (string) : 1 à 2 phrases d'évaluation HONNÊTE de l'adéquation. Signale explicitement les pièges : stage déguisé, poste non rémunéré, séniorité hors de portée, métier différent de ce qui est annoncé.
+- accroche (string) : 2 à 3 phrases rédigées à la première personne, PROPRES À CE STUDIO ET À CETTE ANNONCE, montrant qu'Hippolyte a lu l'offre et connaît le studio. Cite un projet, une technologie ou une exigence précise du texte. Interdiction absolue des formules passe-partout du type « je suis très motivé » ou « votre studio est reconnu ». Pas de superlatif creux.
+- argumentsLettre (tableau de 2 à 4 strings) : chaque élément doit être une PHRASE COMPLÈTE, à la première personne, terminée par un point, reliant une exigence précise de l'annonce à une expérience concrète d'Hippolyte. Pas de mots-clés isolés, pas de fragments nominaux.`;
 
     $('copyPromptBtn').addEventListener('click', () => {
       const text = $('jobText').value.trim();
@@ -1870,6 +2768,7 @@ Hippolyte Combault`,
         argumentsLettre: Array.isArray(parsed.argumentsLettre) ? parsed.argumentsLettre : [],
         priorite: ['Haute', 'Moyenne', 'Basse'].includes(parsed.priorite) ? parsed.priorite : 'Moyenne',
         note: parsed.note || '',
+        accroche: parsed.accroche || '',
         lien: $('jobLink').value.trim()
       };
       fillDraft(draft);
@@ -1877,10 +2776,10 @@ Hippolyte Combault`,
     }
 
     async function analyzeWithGemini(text) {
-      const apiKey = localStorage.getItem('gemini-api-key');
+      const apiKey = lsGet('gemini-api-key');
       if (!apiKey) throw new Error("Ajoute ta clé API Gemini (bouton 🔑 Clés API)");
 
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1894,29 +2793,9 @@ Hippolyte Combault`,
       return out;
     }
 
-    async function analyzeWithClaude(text) {
-      const apiKey = localStorage.getItem('anthropic-api-key');
-      if (!apiKey) throw new Error("Ajoute ta clé API Claude (bouton 🔑 Clés API)");
-
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true"
-        },
-        body: JSON.stringify({
-          model: "claude-3-5-sonnet-20241022",
-          max_tokens: 1000,
-          system: ANALYSIS_SYSTEM_PROMPT,
-          messages: [{ role: "user", content: text }]
-        })
-      });
-      if (!res.ok) throw new Error(`Erreur Claude (${res.status})`);
-      const data = await res.json();
-      return data.content?.[0]?.text;
-    }
+    // L'appel direct à l'API Anthropic depuis le navigateur a été retiré volontairement :
+    // il imposait `anthropic-dangerous-direct-browser-access` et une clé secrète en clair
+    // dans le localStorage d'une page publique. Utiliser « Copier le prompt » avec Claude.ai.
 
     $('analyzeBtn').addEventListener('click', async () => {
       const status = $('analyzeStatus');
@@ -1928,7 +2807,7 @@ Hippolyte Combault`,
       }
       status.textContent = 'Analyse en cours…';
       try {
-        const raw = $('aiProvider').value === 'gemini' ? await analyzeWithGemini(text) : await analyzeWithClaude(text);
+        const raw = await analyzeWithGemini(text);
         applyAnalysisResponse(raw, status);
       } catch (err) {
         status.textContent = err.message;
@@ -1943,7 +2822,10 @@ Hippolyte Combault`,
       $('dReel').value = d.reel;
       $('dPriorite').value = d.priorite;
       $('dMotsCles').value = d.motsCles.join(', ');
-      $('dArguments').value = d.argumentsLettre.join(', ');
+      $('dArguments').value = d.argumentsLettre.join('\n');
+      $('dAccroche').value = d.accroche || '';
+      $('dContactNom').value = d.contact || '';
+      $('dContactEmail').value = d.contactEmail || '';
       if (d.note) {
         $('dNoteWrap').style.display = 'block';
         $('dNote').textContent = d.note;
@@ -1956,24 +2838,60 @@ Hippolyte Combault`,
       draft = null;
     });
 
-    $('addBtn').addEventListener('click', () => {
+    /**
+     * Splits the arguments field into a list.
+     * Why: arguments are now full sentences, so newlines are the separator; commas remain
+     * supported for data captured before the change and for pasted one-liners.
+     * @param {string} raw - Raw textarea content
+     * @returns {string[]}
+     */
+    function parseArguments(raw) {
+      const byLine = raw.split('\n').map(s => s.replace(/^[-•*]\s*/, '').trim()).filter(Boolean);
+      if (byLine.length > 1) return byLine;
+      return (byLine[0] || '').split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    /**
+     * Builds the entry from the draft form, guarding against duplicates.
+     * @returns {Object|null} The stored entry, or null when the user cancelled
+     */
+    function addDraftEntry() {
       const entry = {
-        id: 'e' + Date.now(),
+        id: uid('e'),
         studio: $('dStudio').value.trim() || 'Inconnu',
         poste: $('dPoste').value.trim() || 'Poste non précisé',
         reel: $('dReel').value,
         priorite: $('dPriorite').value,
         motsCles: $('dMotsCles').value.split(',').map(s => s.trim()).filter(Boolean),
-        argumentsLettre: $('dArguments').value.split(',').map(s => s.trim()).filter(Boolean),
+        argumentsLettre: parseArguments($('dArguments').value),
+        accroche: $('dAccroche').value.trim(),
+        prepaEntretien: '',
         lien: $('dLien').value.trim(),
+        contact: $('dContactNom').value.trim(),
+        contactEmail: $('dContactEmail').value.trim(),
         statut: 'À traiter',
         dateEnvoi: '', relance: '', dateReponse: '', dateEntretien: '', notesEntretien: ''
       };
+
+      const dupe = entries.find(e => entryKey(e) === entryKey(entry));
+      if (dupe && !confirm(`« ${dupe.studio} — ${dupe.poste} » est déjà dans ton suivi (statut : ${dupe.statut}).\n\nAjouter quand même une seconde ligne ?`)) {
+        return null;
+      }
+
       entries.unshift(entry);
       saveEntries();
       render();
       $('draftPanel').style.display = 'none';
-      showToast('Ajouté au suivi');
+      return entry;
+    }
+
+    $('addBtn').addEventListener('click', () => {
+      if (addDraftEntry()) showToast('Ajouté au suivi');
+    });
+
+    $('addAndWriteBtn').addEventListener('click', () => {
+      const entry = addDraftEntry();
+      if (entry) openDocGenerator(entry);
     });
 
     // GESTION ET EXPORT/IMPORT LIENS (VEILLE & STUDIOS)
@@ -2000,14 +2918,14 @@ Hippolyte Combault`,
      */
     function loadVeille() {
       try {
-        const raw = localStorage.getItem(VEILLE_KEY);
+        const raw = lsGet(VEILLE_KEY);
         veilleList = raw ? JSON.parse(raw) : DEFAULT_VEILLE;
       } catch (e) { veilleList = DEFAULT_VEILLE; }
       renderVeille();
     }
 
     function saveVeille() {
-      try { localStorage.setItem(VEILLE_KEY, JSON.stringify(veilleList)); } catch (e) { }
+      try { lsSet(VEILLE_KEY, JSON.stringify(veilleList)); } catch (e) { }
     }
 
     /**
@@ -2055,7 +2973,7 @@ Hippolyte Combault`,
           <div class="veille-grid">
             ${groups[g].map(item => `
               <div class="veille-item">
-                <a class="veille-link" href="${escapeHtml(item.lien)}" target="_blank" rel="noopener">
+                <a class="veille-link" href="${escapeHtml(safeUrl(item.lien) || '#')}" target="_blank" rel="noopener">
                   ${escapeHtml(item.nom)} ↗
                   ${item.cat ? `<span style="display:block; font-size:0.68rem; color:var(--muted); font-weight:normal; margin-top:2px;">${escapeHtml(item.cat)}</span>` : ''}
                 </a>
@@ -2097,13 +3015,29 @@ Hippolyte Combault`,
       showToast('Lien de veille ajouté');
     });
 
-    $('openAllVeilleBtn').addEventListener('click', () => {
-      if (veilleList.length === 0) {
-        showToast('Aucun lien de veille');
+    /**
+     * Opens a batch of links in new tabs, capped and confirmed.
+     * Why: browsers block everything past the first popup when a click opens 12 tabs at once,
+     * so the feature silently did nothing.
+     * @param {Object[]} list - Items carrying a `lien`
+     * @param {string} label - Human name used in the confirmation
+     */
+    function openAllLinks(list, label) {
+      const urls = list.map(x => safeUrl(x.lien)).filter(Boolean);
+      if (urls.length === 0) {
+        showToast(`Aucun ${label} à ouvrir`);
         return;
       }
-      veilleList.forEach(v => window.open(v.lien, '_blank'));
-    });
+      const MAX = 8;
+      const batch = urls.slice(0, MAX);
+      const msg = `Ouvrir ${batch.length} onglet(s) ?`
+        + (urls.length > MAX ? `\n\n(${urls.length - MAX} liens supplémentaires ne seront pas ouverts : les navigateurs bloquent les ouvertures massives.)` : '')
+        + `\n\nSi rien ne s'ouvre, autorise les pop-ups pour ce site.`;
+      if (!confirm(msg)) return;
+      batch.forEach(u => window.open(u, '_blank', 'noopener'));
+    }
+
+    $('openAllVeilleBtn').addEventListener('click', () => openAllLinks(veilleList, 'lien de veille'));
 
     /**
      * Downloads a JavaScript object as a JSON file.
@@ -2145,6 +3079,27 @@ Hippolyte Combault`,
       URL.revokeObjectURL(url);
     }
 
+    /**
+     * Merges an imported link collection into an existing one, de-duplicating on the URL.
+     * Why: importing used to overwrite the whole list, silently discarding custom links.
+     * @param {Object[]} current - Existing links
+     * @param {Object[]} incoming - Imported links
+     * @param {string} label - Human name of the collection, used in the prompt
+     * @returns {Object[]|null} Merged list, or null when the user cancelled
+     */
+    function mergeLinks(current, incoming, label) {
+      const seen = new Set(current.map(x => (x.lien || '').trim().toLowerCase()));
+      const fresh = incoming.filter(x => x.lien && !seen.has(x.lien.trim().toLowerCase()));
+      if (current.length > 0) {
+        const msg = `Importer ${label} ?\n\n`
+          + `• ${fresh.length} nouveau(x) lien(s) ajouté(s)\n`
+          + `• ${incoming.length - fresh.length} doublon(s) ignoré(s)\n`
+          + `• Tes ${current.length} lien(s) actuels sont conservés`;
+        if (!confirm(msg)) return null;
+      }
+      return current.concat(fresh);
+    }
+
     $('exportVeilleBtn').addEventListener('click', () => {
       downloadJSON(veilleList, 'hippojob_veille.json');
       showToast('Liste de veille exportée (JSON)');
@@ -2183,25 +3138,32 @@ Hippolyte Combault`,
                 }
               }
               if (imported.length > 0) {
-                veilleList = imported;
-                saveVeille();
-                renderVeille();
-                showToast('Liste de veille CSV importée avec succès !');
+                const merged = mergeLinks(veilleList, imported, 'ces liens de veille (CSV)');
+                if (merged) {
+                  veilleList = merged;
+                  saveVeille();
+                  renderVeille();
+                  showToast('Liste de veille CSV importée.');
+                }
               }
             }
           } else {
             const parsed = JSON.parse(text);
             if (Array.isArray(parsed)) {
-              veilleList = parsed.map(item => ({
-                id: item.id || ('v' + Date.now() + Math.random()),
+              const incoming = parsed.map(item => ({
+                id: item.id || uid('v'),
                 nom: item.nom || 'Lien',
                 lien: item.lien || '',
                 cat: item.cat || item.groupe || 'Jobboard',
                 groupe: item.groupe || item.cat || 'Général'
               }));
-              saveVeille();
-              renderVeille();
-              showToast('Liste de veille JSON importée avec succès !');
+              const merged = mergeLinks(veilleList, incoming, 'ces liens de veille (JSON)');
+              if (merged) {
+                veilleList = merged;
+                saveVeille();
+                renderVeille();
+                showToast('Liste de veille JSON importée.');
+              }
             }
           }
         } catch (err) { showToast('Fichier invalide (JSON ou CSV requis)'); }
@@ -2211,6 +3173,7 @@ Hippolyte Combault`,
     });
 
     $('resetVeilleBtn').addEventListener('click', () => {
+      if (!confirm(`Réinitialiser la veille ?\n\nTes ${veilleList.length} lien(s) actuels seront remplacés par la liste d'origine. Pense à exporter le JSON avant si tu veux les garder.`)) return;
       veilleList = JSON.parse(JSON.stringify(DEFAULT_VEILLE));
       saveVeille();
       renderVeille();
@@ -2238,14 +3201,14 @@ Hippolyte Combault`,
      */
     function loadStudios() {
       try {
-        const raw = localStorage.getItem(STUDIO_KEY);
+        const raw = lsGet(STUDIO_KEY);
         studioList = raw ? JSON.parse(raw) : DEFAULT_STUDIOS;
       } catch (e) { studioList = DEFAULT_STUDIOS; }
       renderStudios();
     }
 
     function saveStudios() {
-      try { localStorage.setItem(STUDIO_KEY, JSON.stringify(studioList)); } catch (e) { }
+      try { lsSet(STUDIO_KEY, JSON.stringify(studioList)); } catch (e) { }
     }
 
     /**
@@ -2292,7 +3255,7 @@ Hippolyte Combault`,
           <div class="studio-chip-row">
             ${cats[c].map(item => `
               <div class="studio-chip">
-                <a href="${escapeHtml(item.lien)}" target="_blank" rel="noopener">
+                <a href="${escapeHtml(safeUrl(item.lien) || '#')}" target="_blank" rel="noopener">
                   ${escapeHtml(item.nom)} ↗
                   ${item.groupe ? `<span style="font-size:0.68rem; color:var(--muted); font-weight:normal; margin-left:4px;">(${escapeHtml(item.groupe)})</span>` : ''}
                 </a>
@@ -2334,13 +3297,7 @@ Hippolyte Combault`,
       showToast('Studio ajouté');
     });
 
-    $('openAllStudiosBtn').addEventListener('click', () => {
-      if (studioList.length === 0) {
-        showToast('Aucun studio à ouvrir');
-        return;
-      }
-      studioList.forEach(s => window.open(s.lien, '_blank'));
-    });
+    $('openAllStudiosBtn').addEventListener('click', () => openAllLinks(studioList, 'studio'));
 
     $('exportStudiosBtn').addEventListener('click', () => {
       downloadJSON(studioList, 'hippojob_studios.json');
@@ -2380,25 +3337,32 @@ Hippolyte Combault`,
                 }
               }
               if (imported.length > 0) {
-                studioList = imported;
-                saveStudios();
-                renderStudios();
-                showToast('Liste des studios CSV importée avec succès !');
+                const merged = mergeLinks(studioList, imported, 'ces studios (CSV)');
+                if (merged) {
+                  studioList = merged;
+                  saveStudios();
+                  renderStudios();
+                  showToast('Liste des studios CSV importée.');
+                }
               }
             }
           } else {
             const parsed = JSON.parse(text);
             if (Array.isArray(parsed)) {
-              studioList = parsed.map(item => ({
-                id: item.id || ('s' + Date.now() + Math.random()),
+              const incoming = parsed.map(item => ({
+                id: item.id || uid('s'),
                 nom: item.nom || 'Studio',
                 lien: item.lien || '',
                 cat: item.cat || item.groupe || 'Animation / VFX France',
                 groupe: item.groupe || item.cat || 'France'
               }));
-              saveStudios();
-              renderStudios();
-              showToast('Liste des studios JSON importée avec succès !');
+              const merged = mergeLinks(studioList, incoming, 'ces studios (JSON)');
+              if (merged) {
+                studioList = merged;
+                saveStudios();
+                renderStudios();
+                showToast('Liste des studios JSON importée.');
+              }
             }
           }
         } catch (err) { showToast('Fichier invalide (JSON ou CSV requis)'); }
@@ -2408,6 +3372,7 @@ Hippolyte Combault`,
     });
 
     $('resetStudiosBtn').addEventListener('click', () => {
+      if (!confirm(`Réinitialiser la liste des studios ?\n\nTes ${studioList.length} studio(s) actuels seront remplacés par la liste d'origine. Pense à exporter le JSON avant si tu veux les garder.`)) return;
       studioList = JSON.parse(JSON.stringify(DEFAULT_STUDIOS));
       saveStudios();
       renderStudios();
@@ -2415,9 +3380,28 @@ Hippolyte Combault`,
     });
 
     // INITIALISATION GENERALE
+    loadProfil();
     loadEntries();
     loadVeille();
     loadStudios();
+
+    if (storageBroken) {
+      const warn = document.createElement('div');
+      warn.className = 'panel';
+      warn.style.borderColor = 'var(--red)';
+      warn.innerHTML = '<h2 style="color:var(--red)">Stockage local indisponible</h2>'
+        + '<p class="hint">Ce navigateur bloque l\'enregistrement (navigation privée, cookies bloqués, ou page ouverte '
+        + 'depuis un fichier local). <b>Rien de ce que tu saisis ne sera conservé en fermant l\'onglet.</b> '
+        + 'Ouvre le site depuis son adresse https:// dans une fenêtre normale.</p>';
+      document.querySelector('.wrap').prepend(warn);
+    }
+
+    // Au premier lancement, on force le passage par le profil : une lettre partie avec un
+    // {telephone} vide ou un faux numéro coûte plus cher qu'un clic de configuration.
+    if (missingProfilFields().length > 0 && !lsGet(PROFIL_KEY)) {
+      $('profilPanel').style.display = 'block';
+      refreshProfilWarning();
+    }
   </script>
 </body>
 
