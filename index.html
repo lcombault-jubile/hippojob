@@ -796,7 +796,7 @@
     <div class="panel" id="profilPanel" style="display:none; border-color: var(--teal);">
       <h2>Mon profil</h2>
       <p class="hint">Ces informations remplacent automatiquement les variables <code>{nom}</code>, <code>{telephone}</code>,
-        <code>{email}</code>, <code>{portfolio}</code> et <code>{cv}</code> dans les lettres et les mails. Remplis-les
+        <code>{email}</code>, <code>{portfolio}</code>, <code>{lienReel}</code> et <code>{cv}</code> dans les lettres et les mails. Remplis-les
         avant d'envoyer quoi que ce soit.</p>
       <div class="row2">
         <div class="field">
@@ -813,9 +813,23 @@
         <input type="text" id="cfgProfilEmail" placeholder="hippolyte@exemple.com">
       </div>
       <div class="field">
-        <label for="cfgProfilPortfolio">Lien portfolio / demo reel</label>
-        <input type="text" id="cfgProfilPortfolio" placeholder="https://...">
+        <label for="cfgProfilPortfolio">Lien principal — LinkedIn ou site perso</label>
+        <input type="text" id="cfgProfilPortfolio" placeholder="https://www.linkedin.com/in/...">
       </div>
+      <div class="row2">
+        <div class="field">
+          <label for="cfgProfilReelAnim">Demo reel Animation</label>
+          <input type="text" id="cfgProfilReelAnim" placeholder="https://vimeo.com/...">
+        </div>
+        <div class="field">
+          <label for="cfgProfilReelRig">Demo reel Rigging</label>
+          <input type="text" id="cfgProfilReelRig" placeholder="https://vimeo.com/...">
+        </div>
+      </div>
+      <p class="hint" style="margin:-6px 0 14px;">La variable <code>{lienReel}</code> choisit
+        automatiquement le bon reel selon le champ « Reel à envoyer » de chaque candidature.
+        <code>{reelAnimation}</code> et <code>{reelRigging}</code> restent disponibles pour citer
+        les deux.</p>
       <div class="field">
         <label for="cfgProfilCv">Lien du CV (Drive, site perso…)</label>
         <input type="text" id="cfgProfilCv" placeholder="https://...">
@@ -901,6 +915,7 @@
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{telephone}">{telephone}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{email}">{email}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{portfolio}">{portfolio}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{lienReel}">{lienReel}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{cv}">{cv}</button>
         </div>
       </div>
@@ -932,12 +947,24 @@
           <button class="btn-ghost btn-small doc-tab-btn active" id="tabBtnLettre">📝 Lettre de Motivation</button>
           <button class="btn-ghost btn-small doc-tab-btn" id="tabBtnMailEnvoi">✉️ Email d'Envoi</button>
           <button class="btn-ghost btn-small doc-tab-btn" id="tabBtnMailRelance">🔄 Email de Relance</button>
+          <button class="btn-ghost btn-small doc-tab-btn" id="tabBtnPrepa">🎯 Prépa entretien</button>
         </div>
       </div>
       <p class="hint" style="margin-top:8px;">Le texte ci-dessous est personnalisé avec les données de l'offre et reste 100% éditable avant export.</p>
       <div class="status-line error" id="docGenWarning" style="margin-top:0;"></div>
 
-      <div class="field" style="margin-bottom:8px;">
+      <div class="field" id="prepaToolbar" style="display:none; background:var(--panel-raised); border:1px solid var(--line); border-radius:8px; padding:12px 14px;">
+        <label style="margin-bottom:8px;">Dossier de préparation</label>
+        <p class="hint" style="margin:0 0 10px;">Copie le prompt de recherche, colle-le dans Claude.ai
+          ou Gemini, puis recolle la réponse ci-dessous. Le dossier est enregistré avec la
+          candidature et exportable en Word.</p>
+        <div class="action-row">
+          <button class="btn-primary btn-small" id="copyPrepaPromptBtn">📋 Copier le prompt de recherche studio</button>
+          <button class="btn-ghost btn-small" id="savePrepaBtn">💾 Enregistrer le dossier</button>
+        </div>
+      </div>
+
+      <div class="field" id="genVarToolbar" style="margin-bottom:8px;">
         <div class="tag-row">
           <span style="font-size:0.75rem; color:var(--muted); align-self:center; font-family:'IBM Plex Mono',monospace;">Insérer variable :</span>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{studio}">{studio}</button>
@@ -948,6 +975,7 @@
           <button class="btn-ghost btn-small gen-var-btn" data-var="{contact}">{contact}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{lien}">{lien}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{portfolio}">{portfolio}</button>
+          <button class="btn-ghost btn-small gen-var-btn" data-var="{lienReel}">{lienReel}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{cv}">{cv}</button>
         </div>
       </div>
@@ -1328,8 +1356,23 @@
       telephone: '',
       email: '',
       portfolio: '',
+      reelAnimation: '',
+      reelRigging: '',
       cv: ''
     };
+
+    /**
+     * Picks the demo reel matching a candidature.
+     * Why: each offer targets either animation or rigging; linking the wrong reel — or a
+     * generic one — wastes the first thing a studio actually looks at.
+     * @param {Object} entry - Candidature, carrying reel = "Animation" | "Rigging"
+     * @returns {string} URL of the relevant reel, falling back to the other one
+     */
+    function reelUrlFor(entry) {
+      const wanted = (entry && entry.reel === 'Rigging') ? profil.reelRigging : profil.reelAnimation;
+      const other = (entry && entry.reel === 'Rigging') ? profil.reelAnimation : profil.reelRigging;
+      return wanted || other || '';
+    }
 
     function loadProfil() {
       try {
@@ -1349,8 +1392,21 @@
       if (!profil.nom) missing.push('nom');
       if (!profil.telephone) missing.push('téléphone');
       if (!profil.email) missing.push('email');
-      if (!profil.portfolio) missing.push('lien portfolio');
+      if (!profil.portfolio) missing.push('lien principal (LinkedIn)');
       return missing;
+    }
+
+    /**
+     * Fields that weaken a candidature without blocking it.
+     * Why: in animation/rigging the demo reel is the deciding document, but forcing it would
+     * stop Hippolyte from applying at all while his reel is not online yet.
+     * @returns {string[]}
+     */
+    function weakProfilFields() {
+      const w = [];
+      if (!profil.reelAnimation) w.push('demo reel Animation manquant');
+      if (!profil.reelRigging) w.push('demo reel Rigging manquant');
+      return w;
     }
 
     function showToast(msg) {
@@ -1394,6 +1450,7 @@
         motsCles: Array.isArray(e.motsCles) ? e.motsCles : [],
         argumentsLettre: Array.isArray(e.argumentsLettre) ? e.argumentsLettre : [],
         accroche: e.accroche || '',
+        prepaEntretien: e.prepaEntretien || '',
         contactEmail: e.contactEmail || (/@/.test(e.contact || '') ? e.contact : ''),
         contact: /@/.test(e.contact || '') ? '' : (e.contact || '')
       }));
@@ -1576,8 +1633,7 @@
         btn.addEventListener('click', (ev) => {
           const entry = entries.find(x => x.id === ev.currentTarget.dataset.id);
           if (!entry) return;
-          if (ev.currentTarget.dataset.action === 'prep') copyPrepPrompt(entry);
-          else openDocGenerator(entry);
+          openDocGenerator(entry, ev.currentTarget.dataset.action === 'prep' ? 'prepa' : 'lettre');
         });
       });
     }
@@ -1613,22 +1669,49 @@
      * @param {Object} e - Entry
      */
     function copyPrepPrompt(e) {
-      const prompt = `Tu m'aides à préparer un entretien pour un poste de ${e.poste} chez ${e.studio}, dans l'animation 3D / VFX / jeu vidéo. Je suis jeune diplômé de Rubika, profil double compétence rigging + animation.
+      const prompt = `Rédige-moi un dossier de préparation d'entretien, structuré et prêt à relire la veille.
 
-Contexte de l'offre :
+CONTEXTE
+- Poste : ${e.poste}
+- Studio : ${e.studio}
+- Secteur : animation 3D / VFX / jeu vidéo
+- Candidat : Hippolyte Combault, jeune diplômé de Rubika. Double compétence rigging + animation 3D. Lead Rigger ET Lead Animateur sur son film de fin d'études « Icefall » (équipe de six). Maya, Python, auto-rigs, outils de pipeline. Objectif à terme : animateur 3D. Basé à Paris, mobile, privilégie le présentiel.
 - Mots-clés de l'annonce : ${(e.motsCles || []).join(', ') || 'non renseignés'}
-- Points que j'ai mis en avant dans ma candidature : ${(e.argumentsLettre || []).join(', ') || 'non renseignés'}
+- Arguments utilisés dans ma candidature : ${(e.argumentsLettre || []).join(' / ') || 'non renseignés'}
+- Accroche envoyée : ${e.accroche || 'non renseignée'}
 - Lien de l'annonce : ${e.lien || 'non renseigné'}
-${e.notesEntretien ? `- Mes notes existantes : ${e.notesEntretien}` : ''}
+- Reel envoyé : ${e.reel}
+${e.notesEntretien ? `- Mes notes déjà prises : ${e.notesEntretien}` : ''}
 
-Donne-moi :
-1. Ce que je dois savoir sur ce studio (productions, pipeline, logiciels probables).
-2. Les 8 questions les plus probables, avec pour chacune l'angle de réponse adapté à mon profil.
-3. Les 3 questions techniques rigging/animation les plus piégeuses pour un junior sur ce type de poste.
-4. 4 questions pertinentes que je devrais poser au recruteur.
-5. Les faiblesses de mon profil qu'ils vont sonder, et comment y répondre honnêtement.`;
+STRUCTURE ATTENDUE
+
+1. LE STUDIO EN UNE PAGE
+   Synthèse factuelle : ce qu'il produit (séries, longs, pubs, jeux), ses productions marquantes des cinq dernières années, sa taille approximative, ses implantations, son actionnariat ou son groupe s'il y en a un, sa réputation en tant qu'employeur. Distingue clairement ce que tu sais de ce que tu supposes, et signale explicitement ce qui demande vérification. N'invente aucun titre de production ni aucun chiffre.
+
+2. PIPELINE ET TECHNIQUE
+   Logiciels et outils probablement utilisés (DCC, moteur de rendu, gestion d'assets, tracking). Ce que cela implique concrètement pour un rigger ou un animateur junior au quotidien.
+
+3. POURQUOI EUX, POURQUOI MOI
+   Trois angles crédibles pour répondre à « pourquoi notre studio ? » sans flatterie creuse, en m'appuyant sur des éléments réels du studio et sur mon parcours.
+
+4. LES 8 QUESTIONS LES PLUS PROBABLES
+   Pour chacune : la question, l'intention réelle du recruteur derrière, et l'angle de réponse adapté à mon profil. Pas de réponse toute faite à réciter, une trame.
+
+5. LES QUESTIONS TECHNIQUES PIÈGES
+   Cinq questions techniques rigging et animation réellement posées à ce niveau, avec les éléments de réponse attendus.
+
+6. MES POINTS FAIBLES
+   Ce qu'ils vont sonder chez un jeune diplômé (manque d'expérience en production, cadence, travail en équipe élargie, choix rig vs anim) et comment y répondre honnêtement, sans surjouer ni s'excuser.
+
+7. CE QUE JE DOIS DEMANDER
+   Six questions à poser, qui montrent que j'ai compris leur activité, dont au moins deux sur le pipeline et une sur l'évolution du poste.
+
+8. LOGISTIQUE
+   Ce qu'il faut préparer concrètement : quels plans du reel commenter et pourquoi, quels fichiers avoir sous la main, quels chiffres de mon expérience savoir citer.
+
+Sois direct et concret. Pas de généralités applicables à n'importe quel studio.`;
       copyToClipboard(prompt);
-      showToast("Prompt de préparation copié — colle-le dans Claude.ai ou Gemini.");
+      showToast("Prompt copié — colle-le dans Claude.ai ou Gemini, puis recolle la réponse dans l'onglet Prépa.");
     }
 
     function attachRowHandlers() {
@@ -1673,7 +1756,7 @@ Donne-moi :
       document.querySelectorAll('.prep-row').forEach(btn => {
         btn.addEventListener('click', (ev) => {
           const entry = byId(ev);
-          if (entry) copyPrepPrompt(entry);
+          if (entry) openDocGenerator(entry, 'prepa');
         });
       });
       document.querySelectorAll('.copy-row').forEach(btn => {
@@ -1756,6 +1839,8 @@ Donne-moi :
       $('cfgProfilTel').value = profil.telephone || '';
       $('cfgProfilEmail').value = profil.email || '';
       $('cfgProfilPortfolio').value = profil.portfolio || '';
+      $('cfgProfilReelAnim').value = profil.reelAnimation || '';
+      $('cfgProfilReelRig').value = profil.reelRigging || '';
       $('cfgProfilCv').value = profil.cv || '';
       refreshProfilWarning();
       panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
@@ -1763,9 +1848,11 @@ Donne-moi :
 
     function refreshProfilWarning() {
       const missing = missingProfilFields();
-      $('profilWarning').textContent = missing.length
-        ? `À compléter avant d'envoyer une candidature : ${missing.join(', ')}.`
-        : '';
+      const weak = weakProfilFields();
+      const parts = [];
+      if (missing.length) parts.push(`À compléter avant d'envoyer une candidature : ${missing.join(', ')}.`);
+      if (weak.length) parts.push('Point faible : ' + weak.join(', ') + ". Un studio d'animation juge le reel en premier.");
+      $('profilWarning').textContent = parts.join(' ');
     }
 
     $('closeProfilBtn').addEventListener('click', () => {
@@ -1778,6 +1865,8 @@ Donne-moi :
         telephone: $('cfgProfilTel').value.trim(),
         email: $('cfgProfilEmail').value.trim(),
         portfolio: $('cfgProfilPortfolio').value.trim(),
+        reelAnimation: $('cfgProfilReelAnim').value.trim(),
+        reelRigging: $('cfgProfilReelRig').value.trim(),
         cv: $('cfgProfilCv').value.trim()
       };
       try { lsSet(PROFIL_KEY, JSON.stringify(profil)); } catch (e) { }
@@ -2080,7 +2169,7 @@ Donne-moi :
             dateEnvoi: x.dateEnvoi || '', relance: x.relance || '',
             dateReponse: x.dateReponse || '', dateEntretien: x.dateEntretien || '',
             notesEntretien: x.notesEntretien || '', lien: x.lien || '',
-            accroche: x.accroche || '',
+            accroche: x.accroche || '', prepaEntretien: x.prepaEntretien || '',
             contact: x.contact || '', contactEmail: x.contactEmail || ''
           }));
           const added = mergeEntries(cleaned, 'cette sauvegarde');
@@ -2123,7 +2212,8 @@ Je serais ravi de vous montrer mon travail. Merci du temps que vous accorderez �
 
 {nom}
 {telephone}
-{portfolio} (Portfolio & Reel)`;
+{portfolio}
+Demo reel : {lienReel}`;
 
     const DEFAULT_TPL_MAIL_ENVOI = `Objet : Candidature {poste} - {nom}
 
@@ -2132,7 +2222,8 @@ Bonjour {contact},
 Veuillez trouver ci-joint ma candidature pour le poste de {poste} au sein de {studio}.
 
 Passionné par l'animation 3D et le rigging (diplômé de Rubika), vous trouverez ma lettre de motivation et mon portfolio/demo reel ci-dessous :
-🔗 Portfolio & Reel : {portfolio}
+🔗 Profil : {portfolio}
+🎬 Demo reel : {lienReel}
 
 {argumentsLettre}
 
@@ -2180,7 +2271,8 @@ Disponible immédiatement en présentiel ou hybride, je serais ravi d'échanger 
 Cordialement,
 {nom}
 {telephone}
-{portfolio}`,
+{portfolio}
+Demo reel : {lienReel}`,
         envoi: `Objet : Candidature {poste} - Rigging & Pipeline - {nom}
 
 Bonjour {contact},
@@ -2188,7 +2280,8 @@ Bonjour {contact},
 Veuillez trouver ci-joint ma candidature pour le poste de {poste} chez {studio}.
 
 Rigger 3D issu de Rubika, je développe des setups réactifs et optimisés pour les besoins de la production :
-🔗 Demo Reel & Portfolio : {portfolio}
+🔗 Profil : {portfolio}
+🎬 Demo reel : {lienReel}
 
 {argumentsLettre}
 
@@ -2213,7 +2306,8 @@ Je me tiens à votre entière disposition pour vous présenter mon Demo Reel et 
 
 Bien à vous,
 {nom}
-{portfolio}`,
+{portfolio}
+Demo reel : {lienReel}`,
         envoi: `Objet : Candidature {poste} - Animation 3D - {nom}
 
 Bonjour {contact},
@@ -2221,7 +2315,8 @@ Bonjour {contact},
 Je vous adresse ma candidature pour le poste de {poste} au sein de {studio}.
 
 Voici le lien direct vers mon Demo Reel d'animation :
-🔗 {portfolio}
+🔗 Profil : {portfolio}
+🎬 Demo reel : {lienReel}
 
 {argumentsLettre}
 
@@ -2240,7 +2335,8 @@ Diplômé de Rubika (Animation 3D / Rigging), je réponds à votre offre pour le
 
 {argumentsLettre}
 
-Reel & Portfolio : {portfolio}
+{portfolio}
+Demo reel : {lienReel}
 
 Restant à votre entière disposition pour un entretien.
 
@@ -2252,7 +2348,8 @@ Bonjour {contact},
 
 Candidature pour le poste de {poste} au sein de {studio}.
 
-🔗 Reel & Portfolio : {portfolio}
+🔗 Profil : {portfolio}
+🎬 Demo reel : {lienReel}
 
 {argumentsLettre}
 
@@ -2345,9 +2442,9 @@ Bien cordialement,
      * Why: Pre-fills and compiles cover letters and emails dynamically.
      * @param {Object} entry - Job candidature entry
      */
-    function openDocGenerator(entry) {
+    function openDocGenerator(entry, tab) {
       currentDocEntry = entry;
-      currentDocTab = 'lettre';
+      currentDocTab = tab || 'lettre';
       updateDocTabButtons();
       renderDocText();
       $('docGeneratorPanel').style.display = 'block';
@@ -2358,14 +2455,63 @@ Bien cordialement,
       $('tabBtnLettre').classList.toggle('active', currentDocTab === 'lettre');
       $('tabBtnMailEnvoi').classList.toggle('active', currentDocTab === 'mailEnvoi');
       $('tabBtnMailRelance').classList.toggle('active', currentDocTab === 'mailRelance');
+      $('tabBtnPrepa').classList.toggle('active', currentDocTab === 'prepa');
+
+      // L'onglet Prépa n'est pas un document à envoyer : les actions d'envoi n'y ont pas de sens.
+      const prepa = currentDocTab === 'prepa';
+      $('prepaToolbar').style.display = prepa ? 'block' : 'none';
+      $('genVarToolbar').style.display = prepa ? 'none' : 'block';
+      $('openMailtoBtn').style.display = prepa ? 'none' : 'inline-block';
+      $('markSentBtn').style.display = prepa ? 'none' : 'inline-block';
     }
 
     /**
      * Compiles template variables into human-formatted text for the active document generator tab.
      * Why: Formats list attributes (like arguments and keywords) neatly into bullet points or paragraphs.
      */
+    /**
+     * Substitutes {variables} line by line, dropping label-only lines left by empty values.
+     * Why: a template line such as "🔗 Demo Reel : {lienReel}" must vanish entirely when no
+     * reel URL is set, instead of exporting a dangling "🔗 Demo Reel :" in the candidature.
+     * A line is dropped only when it carried variables, ALL of them resolved to empty, and
+     * what remains is a label ending in ':' or pure punctuation — so a heading like
+     * "Atouts clés :" introducing a list, which holds no variable, is always preserved.
+     * @param {string} tpl - Raw template
+     * @param {Object<string,string>} vars - Variable name to replacement value
+     * @returns {string} Compiled text
+     */
+    function compileTemplate(tpl, vars) {
+      return tpl.split('\n').map(line => {
+        const found = line.match(/\{([a-zA-Z]+)\}/g) || [];
+        const substituted = line.replace(/\{([a-zA-Z]+)\}/g,
+          (whole, name) => Object.prototype.hasOwnProperty.call(vars, name) ? vars[name] : whole);
+
+        if (found.length === 0) return substituted;
+
+        const allEmpty = found.every(v => {
+          const name = v.slice(1, -1);
+          return Object.prototype.hasOwnProperty.call(vars, name) && vars[name] === '';
+        });
+        if (!allEmpty) return substituted;
+
+        const rest = substituted.trim();
+        const isLabelOnly = rest === '' || /:$/.test(rest) || !/[\p{L}\p{N}]/u.test(rest);
+        return isLabelOnly ? null : substituted;
+      }).filter(l => l !== null).join('\n');
+    }
+
     function renderDocText() {
       if (!currentDocEntry) return;
+
+      if (currentDocTab === 'prepa') {
+        $('genDocText').value = currentDocEntry.prepaEntretien || '';
+        $('docGenTitle').textContent = `Prépa entretien — ${currentDocEntry.studio}`;
+        $('docGenWarning').textContent = currentDocEntry.prepaEntretien
+          ? ''
+          : "Dossier vide : copie le prompt de recherche ci-dessous, puis colle la réponse ici.";
+        return;
+      }
+
       const studio = currentDocEntry.studio || 'votre studio';
       const poste = currentDocEntry.poste || 'poste de création';
       const reel = currentDocEntry.reel || 'Animation / Rigging';
@@ -2396,22 +2542,24 @@ Bien cordialement,
         tpl = lsGet(TPL_MAIL_RELANCE_KEY) || DEFAULT_TPL_MAIL_RELANCE;
       }
 
-      const compiled = tpl
-        .replace(/{studio}/g, studio)
-        .replace(/{poste}/g, poste)
-        .replace(/{reel}/g, reel)
-        .replace(/{contact}/g, contact)
-        .replace(/{lien}/g, lien)
-        .replace(/{accroche}/g, currentDocEntry.accroche || '')
-        .replace(/{argumentsLettre}/g, argsStr)
-        .replace(/{motsCles}/g, kwStr)
-        .replace(/{dateEnvoi}/g, formatDateFr(dateEnvoi))
-        .replace(/{dateRelance}/g, formatDateFr(dateRelance))
-        .replace(/{nom}/g, profil.nom || '')
-        .replace(/{telephone}/g, profil.telephone || '')
-        .replace(/{email}/g, profil.email || '')
-        .replace(/{portfolio}/g, profil.portfolio || '')
-        .replace(/{cv}/g, profil.cv || '');
+      const vars = {
+        studio, poste, reel, contact, lien,
+        accroche: currentDocEntry.accroche || '',
+        argumentsLettre: argsStr,
+        motsCles: kwStr,
+        dateEnvoi: formatDateFr(dateEnvoi),
+        dateRelance: formatDateFr(dateRelance),
+        nom: profil.nom || '',
+        telephone: profil.telephone || '',
+        email: profil.email || '',
+        portfolio: profil.portfolio || '',
+        lienReel: reelUrlFor(currentDocEntry),
+        reelAnimation: profil.reelAnimation || '',
+        reelRigging: profil.reelRigging || '',
+        cv: profil.cv || ''
+      };
+
+      const compiled = compileTemplate(tpl, vars);
 
       // Une variable vide (accroche non renseignée, arguments absents) laisse une ligne
       // orpheline : on recompacte pour ne jamais exporter un trou dans la mise en page.
@@ -2431,6 +2579,29 @@ Bien cordialement,
     $('tabBtnLettre').addEventListener('click', () => { currentDocTab = 'lettre'; updateDocTabButtons(); renderDocText(); });
     $('tabBtnMailEnvoi').addEventListener('click', () => { currentDocTab = 'mailEnvoi'; updateDocTabButtons(); renderDocText(); });
     $('tabBtnMailRelance').addEventListener('click', () => { currentDocTab = 'mailRelance'; updateDocTabButtons(); renderDocText(); });
+    $('tabBtnPrepa').addEventListener('click', () => { currentDocTab = 'prepa'; updateDocTabButtons(); renderDocText(); });
+
+    $('copyPrepaPromptBtn').addEventListener('click', () => {
+      if (currentDocEntry) copyPrepPrompt(currentDocEntry);
+    });
+
+    $('savePrepaBtn').addEventListener('click', () => {
+      if (!currentDocEntry) return;
+      currentDocEntry.prepaEntretien = $('genDocText').value;
+      saveEntries();
+      render();
+      $('docGenWarning').textContent = '';
+      showToast('Dossier de préparation enregistré.');
+    });
+
+    // Filet de sécurité : le dossier de prépa est du texte saisi à la main, on ne le perd
+    // pas parce que l'onglet a été changé sans cliquer sur « Enregistrer ».
+    $('genDocText').addEventListener('input', () => {
+      if (currentDocTab === 'prepa' && currentDocEntry) {
+        currentDocEntry.prepaEntretien = $('genDocText').value;
+        saveEntries();
+      }
+    });
 
     $('closeDocGenBtn').addEventListener('click', () => {
       $('docGeneratorPanel').style.display = 'none';
@@ -2493,7 +2664,8 @@ Bien cordialement,
 
         const blob = await docxLib.Packer.toBlob(doc);
         const kind = currentDocTab === 'lettre' ? 'Lettre_Motivation'
-          : currentDocTab === 'mailRelance' ? 'Mail_Relance' : 'Mail_Candidature';
+          : currentDocTab === 'mailRelance' ? 'Mail_Relance'
+            : currentDocTab === 'prepa' ? 'Prepa_Entretien' : 'Mail_Candidature';
         const fileName = `${kind}_${currentDocEntry.studio.replace(/[^a-zA-Z0-9]/g, '_')}_${currentDocEntry.poste.replace(/[^a-zA-Z0-9]/g, '_')}.docx`;
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -2693,6 +2865,7 @@ Analyse l'offre fournie et réponds UNIQUEMENT par un objet JSON valide, sans te
         motsCles: $('dMotsCles').value.split(',').map(s => s.trim()).filter(Boolean),
         argumentsLettre: parseArguments($('dArguments').value),
         accroche: $('dAccroche').value.trim(),
+        prepaEntretien: '',
         lien: $('dLien').value.trim(),
         contact: $('dContactNom').value.trim(),
         contactEmail: $('dContactEmail').value.trim(),

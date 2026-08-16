@@ -49,8 +49,22 @@ nom, téléphone, email, lien du portfolio, lien du CV.
 
 ### Préparer un entretien
 
-Bouton **🎯 Prépa** sur la ligne concernée : copie un prompt contextualisé (studio, poste,
-mots-clés de l'annonce, arguments déjà utilisés) à coller dans Claude.ai ou Gemini.
+Bouton **🎯 Prépa** sur la ligne concernée. Il ouvre l'onglet *Prépa entretien* du générateur :
+
+1. **📋 Copier le prompt de recherche studio** — le prompt embarque tout le contexte du dossier
+   (poste, studio, mots-clés de l'annonce, arguments et accroche réellement envoyés, reel choisi,
+   notes déjà prises) et demande un dossier en 8 sections : synthèse du studio, pipeline et
+   technique, « pourquoi eux / pourquoi moi », 8 questions probables avec l'intention du
+   recruteur, 5 questions techniques pièges, points faibles à assumer, questions à poser,
+   logistique (quels plans du reel commenter, quels chiffres savoir citer).
+2. Coller dans Claude.ai ou Gemini, puis **recoller la réponse dans la zone de texte**.
+3. Le dossier est enregistré automatiquement à la frappe, et reste attaché à la candidature.
+4. **📥 Télécharger en Word** produit `Prepa_Entretien_<Studio>_<Poste>.docx`, à relire la veille.
+
+> Le prompt interdit explicitement à l'IA d'inventer des titres de production ou des chiffres,
+> et lui demande de distinguer ce qu'elle sait de ce qu'elle suppose. **Vérifier malgré tout les
+> faits sur le site du studio avant l'entretien** : citer une production qui n'est pas la leur
+> est pire que de ne rien citer.
 
 ### Mesurer ce qui marche
 
@@ -113,13 +127,55 @@ L'interface de Google AI Studio évolue régulièrement ; si les libellés diff�
 - Google peut utiliser les contenus envoyés via le niveau gratuit pour améliorer ses produits.
   Ne pas y coller de données personnelles sensibles — le texte d'une annonce publique ne pose
   pas de problème.
-- **La clé est stockée en clair dans le navigateur.** À n'utiliser que sur une machine
-  personnelle. Le bouton **« Supprimer la clé de ce navigateur »** la retire à tout moment.
 - Le modèle appelé est `gemini-2.5-flash` (constante dans `analyzeWithGemini()`).
 
-> ⚠️ L'appel direct à l'API Anthropic depuis le navigateur a été **retiré volontairement** :
-> il exigeait l'en-tête `anthropic-dangerous-direct-browser-access` et une clé secrète en clair
-> sur une page publique. Pour utiliser Claude, passer par « Copier le prompt » et claude.ai.
+### Règles de création et d'usage d'une clé API
+
+Ces règles ne sont pas propres à ce projet : elles valent pour toute clé d'API, quel que soit le
+fournisseur. Elles existent parce qu'une clé est un **mot de passe qui engage un compte, et
+souvent un moyen de paiement**.
+
+**Avant de créer la clé**
+
+1. **Se demander si elle est nécessaire.** Ici, non : « Copier le prompt » fait le même travail
+   sans clé. Une clé qui n'existe pas ne peut pas fuiter.
+2. **Une clé par usage.** Ne jamais réutiliser pour ce site une clé qui sert déjà ailleurs :
+   en cas de fuite, on révoque une seule chose sans casser le reste.
+3. **La nommer explicitement** dans la console du fournisseur (`hippojob-navigateur`), pour
+   savoir quoi révoquer six mois plus tard.
+4. **Plafonner la dépense** dans la console du fournisseur avant le premier appel — quota,
+   budget, alerte de facturation. C'est le seul filet en cas d'usage détourné.
+5. **Ne créer que des clés à portée restreinte** quand le fournisseur le permet : limitation par
+   API, par domaine référent, par adresse IP.
+
+**Où une clé peut vivre**
+
+| Emplacement | Verdict |
+|---|---|
+| Console du fournisseur, machine personnelle | ✅ |
+| `localStorage` d'un navigateur personnel | ⚠️ Acceptable pour une clé plafonnée à faible privilège, comme ici |
+| Fichier `.env` **non versionné** | ✅ |
+| Dépôt Git, même privé | ❌ Jamais |
+| Code source, HTML, capture d'écran, ticket, message | ❌ Jamais |
+| Ordinateur partagé, poste de l'école, machine d'un tiers | ❌ Jamais |
+
+**Règle absolue : aucune clé secrète côté navigateur.** Une clé placée dans une page web est
+lisible par l'utilisateur, par ses extensions et par toute injection de script. C'est pourquoi
+seule la clé Gemini est acceptée ici — gratuite, plafonnable, révocable en un clic — et pourquoi
+l'appel direct à l'API Anthropic a été **retiré** : il exigeait l'en-tête
+`anthropic-dangerous-direct-browser-access` et une clé secrète en clair sur une page publique.
+Pour utiliser Claude, passer par « Copier le prompt » et claude.ai.
+
+**Pendant la vie de la clé**
+
+- La **révoquer immédiatement** au moindre doute : capture d'écran partagée, commit accidentel,
+  machine prêtée. Une révocation coûte deux minutes, une clé détournée coûte une facture.
+- La **faire tourner** si elle sert longtemps.
+- **Supprimer celles qui ne servent plus** — le bouton « Supprimer la clé de ce navigateur »
+  la retire de HippoJob, mais **ne la révoque pas** chez le fournisseur : les deux gestes sont
+  nécessaires.
+- **Surveiller la consommation** de temps en temps dans la console du fournisseur : un usage
+  anormal est le premier signe d'une fuite.
 
 ---
 
@@ -138,10 +194,15 @@ Bouton **✉️ Modèles**. Quatre profils prédéfinis (Classique, Rigging, Ani
 | `{motsCles}` | Analyse de l'offre | Rendu « Compétences cibles : … » |
 | `{contact}` `{lien}` | Fiche de la candidature | |
 | `{dateEnvoi}` `{dateRelance}` | Fiche de la candidature | Formatées en français (« 15 août 2026 ») |
-| `{nom}` `{telephone}` `{email}` `{portfolio}` `{cv}` | Panneau Profil | |
+| `{nom}` `{telephone}` `{email}` `{portfolio}` `{cv}` | Panneau Profil | `{portfolio}` = LinkedIn ou site perso |
+| `{lienReel}` | Profil + fiche | **Choisit le reel Animation ou Rigging selon le champ « Reel à envoyer » de la candidature** |
+| `{reelAnimation}` `{reelRigging}` | Panneau Profil | Pour citer les deux reels explicitement |
 
 Une variable laissée vide ne crée pas de ligne blanche : le texte est recompacté à la
-compilation. Si une variable n'est pas reconnue, un avertissement s'affiche avant l'export.
+compilation. Mieux, **une ligne entière disparaît** quand toutes ses variables sont vides et
+qu'il ne reste qu'un libellé — ainsi `🎬 Demo reel : {lienReel}` s'efface au lieu d'exporter un
+« 🎬 Demo reel : » orphelin. Un titre sans variable, comme `Atouts clés :`, est toujours
+conservé. Si une variable n'est pas reconnue, un avertissement s'affiche avant l'export.
 
 > Les modèles enregistrés **avant** l'ajout de `{accroche}` ne l'utilisent pas. Un toast le
 > signale à l'ouverture du panneau ; il suffit de cliquer sur le bouton `{accroche}` pour
@@ -162,6 +223,61 @@ compilation. Si une variable n'est pas reconnue, un avertissement s'affiche avan
 | `tpl-lettre`, `tpl-mail-envoi`, `tpl-mail-relance` | Modèles personnalisés |
 | `google-sheet-url` | Raccourci vers la feuille (jamais lue par le code) |
 | `gemini-api-key` | Clé API, si renseignée |
+
+Tout est du JSON sérialisé dans le `localStorage` du navigateur, sur la machine d'Hippolyte.
+Aucune base de données, aucun serveur, aucun fichier sur le disque tant qu'il ne clique pas sur
+un bouton d'export.
+
+#### Le tableau de suivi (`candidatures-list`)
+
+Un tableau d'objets, un par candidature. Chaque enregistrement porte l'ensemble de son cycle
+de vie — il n'y a pas de table séparée, pas de relation :
+
+```js
+{
+  id: "el5k2x9abc",                     // identifiant local, jamais réutilisé
+  studio: "TeamTO", poste: "Character Rigger",
+  reel: "Rigging",                      // détermine quel demo reel sera lié
+  priorite: "Haute",
+  motsCles: ["Maya", "Python"],         // tableaux, pas des chaînes
+  argumentsLettre: ["Phrase une.", "Phrase deux."],
+  accroche: "2-3 phrases propres à ce studio.",
+  statut: "Envoyé",                     // toujours l'une des 7 valeurs de STATUTS
+  dateEnvoi: "2026-07-01", relance: "2026-07-08",
+  dateReponse: "", dateEntretien: "",
+  notesEntretien: "…", prepaEntretien: "…",
+  lien: "https://…", contact: "Mme Durand", contactEmail: "rh@teamto.com"
+}
+```
+
+#### Les lettres et les mails ne sont pas stockés
+
+**C'est un choix de conception, pas un oubli.** Une lettre n'est jamais enregistrée : elle est
+**recompilée à chaque affichage** par `compileTemplate()`, à partir de trois sources — le modèle
+(`tpl-lettre`), les données de la candidature (`accroche`, `argumentsLettre`, `studio`…) et le
+panneau Profil.
+
+Conséquences à connaître :
+
+- Corriger une faute dans un modèle **améliore rétroactivement** toutes les lettres à venir.
+  Rien à reprendre dossier par dossier.
+- **Les retouches faites à la main dans la zone de texte ne sont pas conservées.** Changer
+  d'onglet ou rouvrir le générateur régénère le texte depuis le modèle. Si une formulation
+  mérite d'être gardée, il faut soit l'exporter en `.docx`, soit la remonter dans le champ
+  *accroche* ou dans les arguments de la candidature, qui eux sont enregistrés.
+- La lettre effectivement envoyée n'est donc pas archivée dans l'outil : le `.docx` téléchargé
+  fait foi.
+
+#### Le dossier de préparation d'entretien, lui, est stocké
+
+`prepaEntretien` est du texte libre, propre à chaque candidature, **enregistré à la frappe**
+(pas besoin de cliquer sur « Enregistrer »). C'est de la saisie manuelle irremplaçable, contrairement
+à une lettre régénérable — d'où le traitement différent.
+
+Il est inclus dans la **sauvegarde JSON**, mais **pas dans l'export TSV vers Sheets** : un dossier
+de plusieurs milliers de caractères rendrait la feuille illisible. Un réimport depuis Sheets ne
+l'efface pas pour autant, puisque la fusion ne touche jamais aux dossiers déjà présents.
+**La sauvegarde JSON est donc le seul filet pour ces dossiers.**
 
 Tous les accès passent par `lsGet` / `lsSet` / `lsRemove`. **Ne jamais appeler `localStorage`
 directement** : il lève une `SecurityError` en navigation privée ou quand les cookies sont
