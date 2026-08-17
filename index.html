@@ -801,7 +801,7 @@
       <div class="row2">
         <div class="field">
           <label for="cfgProfilNom">Nom complet</label>
-          <input type="text" id="cfgProfilNom" placeholder="{nom}">
+          <input type="text" id="cfgProfilNom" placeholder="Prénom Nom">
         </div>
         <div class="field">
           <label for="cfgProfilTel">Téléphone</label>
@@ -1833,8 +1833,13 @@ Sois direct et concret. Pas de généralités applicables à n'importe quel stud
     lsRemove('google-project-id');
 
     // GESTION DU PANNEAU PROFIL
-    $('profilBtn').addEventListener('click', () => {
-      const panel = $('profilPanel');
+    /**
+     * Loads the stored profile into the form fields.
+     * Why: the panel is opened from two places — the toolbar button and the first-launch
+     * auto-open — and only the button used to populate it, so a first-time user saw empty
+     * fields and could overwrite the defaults with blanks.
+     */
+    function fillProfilForm() {
       $('cfgProfilNom').value = profil.nom || '';
       $('cfgProfilTel').value = profil.telephone || '';
       $('cfgProfilEmail').value = profil.email || '';
@@ -1843,6 +1848,11 @@ Sois direct et concret. Pas de généralités applicables à n'importe quel stud
       $('cfgProfilReelRig').value = profil.reelRigging || '';
       $('cfgProfilCv').value = profil.cv || '';
       refreshProfilWarning();
+    }
+
+    $('profilBtn').addEventListener('click', () => {
+      const panel = $('profilPanel');
+      fillProfilForm();
       panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     });
 
@@ -3400,7 +3410,7 @@ Analyse l'offre fournie et réponds UNIQUEMENT par un objet JSON valide, sans te
     // {telephone} vide ou un faux numéro coûte plus cher qu'un clic de configuration.
     if (missingProfilFields().length > 0 && !lsGet(PROFIL_KEY)) {
       $('profilPanel').style.display = 'block';
-      refreshProfilWarning();
+      fillProfilForm();
     }
   </script>
 </body>
