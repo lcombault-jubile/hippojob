@@ -86,6 +86,33 @@ l'historique, un changement d'ordinateur ou un mode navigation privée = tout es
 Un bandeau rouge apparaît si le navigateur bloque l'enregistrement (navigation privée,
 cookies désactivés, page ouverte en `file://`). Dans ce cas, **rien n'est conservé**.
 
+### ⚠️ Safari et iPhone : le stockage est effacé au bout de 7 jours
+
+Safari, sur iOS comme sur macOS, **supprime le stockage local des sites qui n'ont pas été
+visités depuis sept jours**. Ce n'est pas un bug, c'est le fonctionnement normal de sa
+protection anti-traçage, et cela s'applique à ce site comme aux autres.
+
+Conséquences directes :
+
+- **Sur iPhone, ne jamais considérer les données comme durables.** Une semaine sans ouvrir le
+  site pendant les vacances, et le suivi est vide au retour.
+- Le bloc « À faire aujourd'hui » affiche donc un **rappel de sauvegarde en rouge** dès que la
+  dernière sauvegarde JSON date de plus de sept jours, ou n'a jamais eu lieu. Il disparaît une
+  fois la sauvegarde faite.
+- **Ajouter le site à l'écran d'accueil** (Partager ▸ Sur l'écran d'accueil) donne un stockage
+  plus durable qu'un simple onglet Safari — mais ce stockage est *séparé* de celui de l'onglet :
+  les données ne sont pas partagées entre les deux.
+
+### Deux appareils = deux jeux de données séparés
+
+Le PC Windows et l'iPhone ont chacun leur propre `localStorage`. **Rien ne circule
+automatiquement entre eux.** Le seul pont est le fichier JSON : sauvegarder d'un côté,
+importer de l'autre (l'import fusionne, il n'écrase pas).
+
+En pratique, choisir **un appareil de référence** et s'y tenir. Le PC Windows est le bon
+choix : c'est là qu'on rédige les lettres et qu'on récupère les `.docx`. L'iPhone sert à
+consulter les relances du jour, pas à saisir.
+
 ### Échanger avec Google Sheets
 
 La feuille doit rester **privée**. L'échange se fait à la main, dans les deux sens :

@@ -1270,6 +1270,7 @@
   <script>
     const STORAGE_KEY = 'candidatures-list';
     const PROFIL_KEY = 'candidatures-profil';
+    const BACKUP_KEY = 'candidatures-derniere-sauvegarde';
     const STATUTS = ['À traiter', 'Reel à envoyer', 'Envoyé', 'Relancé', 'Entretien', 'Refus', 'Sans réponse'];
     /** Statuts qui prouvent que le studio a répondu — base du calcul de taux de réponse. */
     const STATUTS_REPONSE = ['Entretien', 'Refus'];
@@ -1604,6 +1605,24 @@
         });
       });
 
+      // Safari, sur iPhone comme sur Mac, efface le stockage local des sites non visités
+      // depuis sept jours. La sauvegarde n'est donc pas une précaution : c'est le seul
+      // moyen de ne pas tout perdre. On la remonte au même rang qu'une relance en retard.
+      if (entries.length > 0) {
+        const last = lsGet(BACKUP_KEY);
+        const days = last ? Math.floor((Date.now() - Number(last)) / 86400000) : null;
+        if (days === null || days >= 7) {
+          items.push({
+            urgent: true,
+            label: '<b>Sauvegarder ton suivi</b> — un clic sur « 💾 Sauvegarder (JSON) »',
+            when: days === null
+              ? `${entries.length} dossier(s) jamais sauvegardé(s)`
+              : `dernière sauvegarde il y a ${days} jours`,
+            id: null, action: 'backup'
+          });
+        }
+      }
+
       const aTraiter = entries.filter(e => e.statut === 'À traiter' || e.statut === 'Reel à envoyer');
       if (aTraiter.length > 0) {
         items.push({
@@ -1625,15 +1644,17 @@
         <div class="today-item${it.urgent ? ' urgent' : ''}">
           <span class="t-label">${it.label}</span>
           <span class="t-when">${escapeHtml(it.when)}</span>
-          <button class="btn-ghost btn-small today-go" data-id="${it.id}" data-action="${it.action}">${it.action === 'prep' ? '🎯 Préparer' : '📄 Ouvrir'}</button>
+          <button class="btn-ghost btn-small today-go" data-id="${it.id || ''}" data-action="${it.action}">${it.action === 'prep' ? '🎯 Préparer' : it.action === 'backup' ? '💾 Sauvegarder' : '📄 Ouvrir'}</button>
         </div>
       `).join('');
 
       list.querySelectorAll('.today-go').forEach(btn => {
         btn.addEventListener('click', (ev) => {
+          const action = ev.currentTarget.dataset.action;
+          if (action === 'backup') { $('exportEntriesBtn').click(); return; }
           const entry = entries.find(x => x.id === ev.currentTarget.dataset.id);
           if (!entry) return;
-          openDocGenerator(entry, ev.currentTarget.dataset.action === 'prep' ? 'prepa' : 'lettre');
+          openDocGenerator(entry, action === 'prep' ? 'prepa' : 'lettre');
         });
       });
     }
@@ -1805,6 +1826,29 @@ Sois direct et concret. Pas de généralités applicables à n'importe quel stud
      * @param {string} text - Plain text to copy
      */
     function copyToClipboard(text) { navigator.clipboard?.writeText(text).catch(() => { }); }
+
+    /**
+     * Hands a generated file to the browser for download.
+     * Why: Safari — and iOS Safari in particular — cancels the download when the object URL is
+     * revoked in the same tick as the click, and ignores anchors that are not in the document.
+     * Both were the case here, which silently broke the JSON backup on Hippolyte's iPhone.
+     * @param {Blob} blob - File contents
+     * @param {string} filename - Suggested file name
+     */
+    function triggerDownload(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      // Laisser à Safari le temps de démarrer le transfert avant de libérer l'URL.
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 4000);
+    }
 
     /**
      * Escapes raw HTML strings to prevent XSS.
@@ -2142,6 +2186,8 @@ Sois direct et concret. Pas de généralités applicables à n'importe quel stud
       }
       downloadJSON({ version: 1, exportedAt: new Date().toISOString(), profil, entries },
         `hippojob_suivi_${todayISO()}.json`);
+      lsSet(BACKUP_KEY, String(Date.now()));
+      render();
       showToast(`${entries.length} dossiers sauvegardés.`);
     });
 
@@ -2677,12 +2723,7 @@ Bien cordialement,
           : currentDocTab === 'mailRelance' ? 'Mail_Relance'
             : currentDocTab === 'prepa' ? 'Prepa_Entretien' : 'Mail_Candidature';
         const fileName = `${kind}_${currentDocEntry.studio.replace(/[^a-zA-Z0-9]/g, '_')}_${currentDocEntry.poste.replace(/[^a-zA-Z0-9]/g, '_')}.docx`;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        a.click();
-        URL.revokeObjectURL(url);
+        triggerDownload(blob, fileName);
         showToast('Fichier Word (.docx) téléchargé !');
       } catch (err) {
         console.error(err);
@@ -3056,13 +3097,7 @@ Analyse l'offre fournie et réponds UNIQUEMENT par un objet JSON valide, sans te
      * @param {string} filename - Target filename
      */
     function downloadJSON(data, filename) {
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
+      triggerDownload(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), filename);
     }
 
     /**
@@ -3080,13 +3115,7 @@ Analyse l'offre fournie et réponds UNIQUEMENT par un objet JSON valide, sans te
         `"${(item.groupe || item.cat || '').replace(/"/g, '""')}"`
       ].join(','));
       const csvContent = [header.join(','), ...rows].join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
+      triggerDownload(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }), filename);
     }
 
     /**
