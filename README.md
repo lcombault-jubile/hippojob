@@ -38,6 +38,7 @@ nom, téléphone, email, lien du portfolio, lien du CV.
 4. Le formulaire s'ouvre pré-rempli. **Relire l'accroche** : c'est le paragraphe qui rend la
    lettre spécifique à ce studio, et c'est ce qu'un recruteur remarque.
    Lire aussi la **Note** : l'IA doit y signaler les pièges (stage déguisé, séniorité hors de portée).
+   Vérifier la **Ville du studio** : elle alimente la phrase sur le déménagement dans la lettre.
 5. **✍️ Ajouter et rédiger la lettre** → la lettre s'affiche, éditable.
 6. Ajuster, puis **📥 Télécharger en Word**, **📋 Copier le texte** ou **✉️ Ouvrir Client Mail**.
 7. Une fois parti : **✅ Marquer comme Envoyé & Synchro**. La relance est planifiée à J+7
@@ -208,14 +209,19 @@ Pour utiliser Claude, passer par « Copier le prompt » et claude.ai.
 
 ## 4. Personnaliser les modèles
 
-Bouton **✉️ Modèles**. Quatre profils prédéfinis (Classique, Rigging, Animation, Court) et un
-éditeur libre pour la lettre, le mail de candidature et le mail de relance.
+Bouton **✉️ Modèles**. Quatre profils prédéfinis (Lettre complète, Rigging, Animation, Court)
+et un éditeur libre pour la lettre, le mail de candidature et le mail de relance.
+
+Le modèle de lettre par défaut est la lettre longue d'Hippolyte (Rubika, *Icefall*, stage chez
+Circus), avec trois points de personnalisation par studio : `{studio}` dans la première phrase,
+`{accroche}` juste après, et `{ville}` dans la phrase sur la mobilité.
 
 ### Variables disponibles
 
 | Variable | Source | Remarque |
 |---|---|---|
 | `{studio}` `{poste}` `{reel}` | Analyse de l'offre | |
+| `{ville}` | Fiche de la candidature | Ville du studio, pour la phrase sur le déménagement. Non renseignée, elle s'affiche « … » et un avertissement rouge le signale |
 | `{accroche}` | Analyse de l'offre | **La variable clé** : 2-3 phrases propres à ce studio |
 | `{argumentsLettre}` | Analyse de l'offre | Paragraphe dans la lettre, puces dans les mails |
 | `{motsCles}` | Analyse de l'offre | Rendu « Compétences cibles : … » |
@@ -234,6 +240,10 @@ conservé. Si une variable n'est pas reconnue, un avertissement s'affiche avant 
 > Les modèles enregistrés **avant** l'ajout de `{accroche}` ne l'utilisent pas. Un toast le
 > signale à l'ouverture du panneau ; il suffit de cliquer sur le bouton `{accroche}` pour
 > l'insérer, ou de faire **Réinitialiser par Défaut**.
+
+> Même chose pour la lettre : un modèle déjà enregistré dans le navigateur **n'est pas
+> remplacé** par la nouvelle version par défaut. Pour la récupérer : **✉️ Modèles** →
+> *Réinitialiser par Défaut* (ou charger le profil « Lettre complète »), puis *Enregistrer*.
 
 ---
 
@@ -273,7 +283,8 @@ de vie — il n'y a pas de table séparée, pas de relation :
   dateEnvoi: "2026-07-01", relance: "2026-07-08",
   dateReponse: "", dateEntretien: "",
   notesEntretien: "…", prepaEntretien: "…",
-  lien: "https://…", contact: "Mme Durand", contactEmail: "rh@teamto.com"
+  lien: "https://…", ville: "Bourg-lès-Valence",
+  contact: "Mme Durand", contactEmail: "rh@teamto.com"
 }
 ```
 
