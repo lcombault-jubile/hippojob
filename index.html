@@ -760,6 +760,15 @@
       margin-bottom: 4px;
     }
 
+    /* La ville alimente la phrase de mobilité de la lettre : elle doit rester
+       corrigeable depuis le tableau, y compris sur les dossiers importés. */
+    .studio-cell input.ville-input {
+      font-size: .72rem;
+      padding: 4px 6px;
+      margin-top: 5px;
+      min-width: 130px;
+    }
+
     footer {
       text-align: center;
       color: var(--muted);
@@ -891,7 +900,7 @@
         <label for="tplPresetSelect">Charger un modèle prédéfini</label>
         <select id="tplPresetSelect">
           <option value="">-- Choisir un profil de modèle --</option>
-          <option value="classique">Profil 1 : Classique (Rubika & Lead Rigger/Anim)</option>
+          <option value="classique">Profil 1 : Lettre complète (Animation — version à jour)</option>
           <option value="rigging">Profil 2 : Focus Technique & Rigging Pipeline</option>
           <option value="animation">Profil 3 : Focus Créatif & Animation 3D</option>
           <option value="court">Profil 4 : Email Direct & Synthétique</option>
@@ -903,6 +912,7 @@
         <div class="tag-row" id="tplVarInsertRow">
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{studio}">{studio}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{poste}">{poste}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{ville}">{ville}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{reel}">{reel}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{accroche}">{accroche}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{argumentsLettre}">{argumentsLettre}</button>
@@ -969,6 +979,7 @@
           <span style="font-size:0.75rem; color:var(--muted); align-self:center; font-family:'IBM Plex Mono',monospace;">Insérer variable :</span>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{studio}">{studio}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{poste}">{poste}</button>
+          <button class="btn-ghost btn-small gen-var-btn" data-var="{ville}">{ville}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{accroche}">{accroche}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{argumentsLettre}">{argumentsLettre}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{motsCles}">{motsCles}</button>
@@ -1150,9 +1161,15 @@
         <label for="dPoste">Poste</label>
         <input type="text" id="dPoste">
       </div>
-      <div class="field">
-        <label for="dLien">Lien de l'annonce</label>
-        <input type="text" id="dLien" placeholder="https://...">
+      <div class="row2">
+        <div class="field">
+          <label for="dLien">Lien de l'annonce</label>
+          <input type="text" id="dLien" placeholder="https://...">
+        </div>
+        <div class="field">
+          <label for="dVille">Ville du studio</label>
+          <input type="text" id="dVille" placeholder="Ex. Angoulême">
+        </div>
       </div>
       <div class="row2">
         <div class="field">
@@ -1451,6 +1468,7 @@
         motsCles: Array.isArray(e.motsCles) ? e.motsCles : [],
         argumentsLettre: Array.isArray(e.argumentsLettre) ? e.argumentsLettre : [],
         accroche: e.accroche || '',
+        ville: e.ville || '',
         prepaEntretien: e.prepaEntretien || '',
         contactEmail: e.contactEmail || (/@/.test(e.contact || '') ? e.contact : ''),
         contact: /@/.test(e.contact || '') ? '' : (e.contact || '')
@@ -1492,7 +1510,7 @@
         if (statut && e.statut !== statut) return false;
         if (filterDueOnly && !isRelanceDue(e)) return false;
         if (!q) return true;
-        const hay = [e.studio, e.poste, e.contact, e.contactEmail, e.notesEntretien, e.reel, e.statut,
+        const hay = [e.studio, e.poste, e.ville, e.contact, e.contactEmail, e.notesEntretien, e.reel, e.statut,
         (e.motsCles || []).join(' '), (e.argumentsLettre || []).join(' ')].join(' ').toLowerCase();
         return hay.includes(q);
       });
@@ -1534,6 +1552,7 @@
       <td class="idx">${String(i + 1).padStart(2, '0')}${isRelanceDue(e) ? ' ⏰' : ''}</td>
       <td class="studio-cell">
         <b>${escapeHtml(e.studio)}</b><span>${escapeHtml(e.poste)}</span>
+        <input type="text" class="ville-input" data-field="ville" data-id="${e.id}" value="${escapeHtml(e.ville || '')}" placeholder="Ville du studio">
         ${href ? `<a class="cell-link" href="${escapeHtml(href)}" target="_blank" rel="noopener">Voir l'annonce ↗</a>` : ''}
       </td>
       <td class="contact-cell">
@@ -1760,7 +1779,7 @@ Sois direct et concret. Pas de généralités applicables à n'importe quel stud
           render();
         });
       });
-      document.querySelectorAll('.notes-entretien, .contact-cell input').forEach(inp => {
+      document.querySelectorAll('.notes-entretien, .contact-cell input, .ville-input').forEach(inp => {
         inp.addEventListener('change', (ev) => {
           const entry = byId(ev);
           if (!entry) return;
@@ -2090,6 +2109,7 @@ Sois direct et concret. Pas de généralités applicables à n'importe quel stud
         const idxNotes = getIdx(['notes', 'remarques', 'commentaire']);
         const idxLien = getIdx(['lien', 'url', 'annonce']);
         const idxAccroche = getIdx(['accroche']);
+        const idxVille = getIdx(['ville', 'city', 'localisation']);
         // Deux colonnes distinctes : « Contact » (nom) et « Email contact ». Sans l'exclusion
         // explicite d'« email », la colonne nom capterait les deux et l'adresse serait perdue.
         const idxContactEmail = headers.findIndex(h => h.includes('email') || h.includes('mail'));
@@ -2141,6 +2161,7 @@ Sois direct et concret. Pas de généralités applicables à n'importe quel stud
             notesEntretien: idxNotes >= 0 ? r[idxNotes] : '',
             lien: idxLien >= 0 ? r[idxLien] : '',
             accroche: idxAccroche >= 0 ? (r[idxAccroche] || '') : '',
+            ville: idxVille >= 0 ? (r[idxVille] || '') : '',
             contact: isEmail ? '' : contactRaw,
             contactEmail: emailRaw || (isEmail ? contactRaw : '')
           });
@@ -2225,7 +2246,7 @@ Sois direct et concret. Pas de généralités applicables à n'importe quel stud
             dateEnvoi: x.dateEnvoi || '', relance: x.relance || '',
             dateReponse: x.dateReponse || '', dateEntretien: x.dateEntretien || '',
             notesEntretien: x.notesEntretien || '', lien: x.lien || '',
-            accroche: x.accroche || '', prepaEntretien: x.prepaEntretien || '',
+            accroche: x.accroche || '', ville: x.ville || '', prepaEntretien: x.prepaEntretien || '',
             contact: x.contact || '', contactEmail: x.contactEmail || ''
           }));
           const added = mergeEntries(cleaned, 'cette sauvegarde');
@@ -2252,19 +2273,27 @@ Sois direct et concret. Pas de généralités applicables à n'importe quel stud
 
 Bonjour {contact},
 
-Fraîchement diplômé de Rubika, je vous écris au sujet de votre offre de poste de {poste}.
+Je vous contacte aujourd'hui avec l'envie de rejoindre votre studio sur le poste de {poste}. Je suis depuis quelque temps le travail de {studio} et j'ai beaucoup d'admiration pour vos productions. Votre approche de l'animation et l'identité de vos projets correspondent particulièrement au type de films sur lesquels j'aimerais travailler.
 
 {accroche}
 
-Le rig est ma spécialité, sans que j'aie jamais lâché l'animation : je conçois mes setups en sachant ce qu'on attend d'eux une fois entre les mains d'un animateur.
+Je viens de terminer mes cinq années d'études à SUPINFOCOM Rubika, où je me suis spécialisé en animation 3D et en rig. Pour mon film de fin d'études, Icefall, j'ai occupé les rôles de Lead Animator et Lead Rigger au sein d'une équipe de six personnes. Cette expérience m'a permis de développer une approche du rig pensée pour répondre aux besoins des animateurs, mais surtout de confirmer mon envie de faire de l'animation mon domaine de spécialisation.
+
+J'ai également eu l'occasion de découvrir le monde professionnel lors d'un stage chez Circus. Initialement recruté en tant que généraliste 3D, l'équipe m'a finalement vite confié des recherches d'animations pour les personnages ainsi que des plans d'une séquence dédiée à un trailer pour le long métrage en production. Cette première expérience sur une production professionnelle a renforcé mon envie de poursuivre dans cette voie et de continuer à progresser en tant qu'animateur.
+
+Entre ma formation à Rubika, la réalisation de mon film de fin d'études et mon stage chez Circus, j'ai développé une vraie rigueur de travail et une bonne compréhension du rythme d'une production, des acquis que j'aimerais mettre au service de vos équipes.
 
 {argumentsLettre}
 
-Mon objectif à terme est l'animation, et c'est précisément ce qui rend mon profil de rigger utile à votre pipeline dès maintenant. Basé à Paris, je suis mobile et je privilégie le présentiel.
+Aujourd'hui, je cherche avant tout à rejoindre une équipe qui me permettrait de continuer à apprendre et à développer mon regard et ma pratique de l'animation. Si des opportunités en rig se présentent également, je serais bien sûr très heureux de pouvoir mettre cette compétence au service de votre équipe.
 
-Je serais ravi de vous montrer mon travail. Merci du temps que vous accorderez à ma candidature.
+Je suis actuellement basé à Paris, mais je suis tout à fait prêt à déménager à {ville} pour rejoindre votre studio. Je privilégie le travail en présentiel, qui me permettra de faciliter les échanges avec l'équipe et de m'impliquer pleinement dans les projets.
 
-À bientôt,
+Je serais ravi de pouvoir vous présenter mon travail et d'échanger avec vous au sujet de potentielles opportunités.
+
+Merci pour votre temps et pour l'attention portée à ma candidature.
+
+Cordialement,
 
 {nom}
 {telephone}
@@ -2573,6 +2602,9 @@ Bien cordialement,
       const reel = currentDocEntry.reel || 'Animation / Rigging';
       const contact = currentDocEntry.contact || 'l\'équipe de recrutement';
       const lien = currentDocEntry.lien || '';
+      // La ville reste un « … » visible plutôt qu'un blanc : une lettre qui annonce
+      // « prêt à déménager à  » part sans que personne ne le remarque.
+      const ville = (currentDocEntry.ville || '').trim();
       const dateEnvoi = currentDocEntry.dateEnvoi || todayISO();
       const dateRelance = currentDocEntry.relance || plusDaysISO(7);
 
@@ -2600,6 +2632,7 @@ Bien cordialement,
 
       const vars = {
         studio, poste, reel, contact, lien,
+        ville: ville || '…',
         accroche: currentDocEntry.accroche || '',
         argumentsLettre: argsStr,
         motsCles: kwStr,
@@ -2626,6 +2659,7 @@ Bien cordialement,
       const missing = missingProfilFields();
       if (missing.length) warnings.push(`Profil incomplet (${missing.join(', ')}) — clique sur « 👤 Profil ».`);
       if (!currentDocEntry.contact) warnings.push('Pas de nom de contact : la lettre commencera par une formule impersonnelle.');
+      if (currentDocTab === 'lettre' && !ville && /\{ville\}/.test(tpl)) warnings.push("Ville du studio non renseignée : la phrase sur le déménagement contient encore « … ».");
       if (currentDocTab !== 'lettre' && !currentDocEntry.contactEmail) warnings.push("Pas d'email de contact : le mail s'ouvrira sans destinataire.");
       if (currentDocTab === 'mailRelance' && !currentDocEntry.dateEnvoi) warnings.push("Cette candidature n'a jamais été marquée comme envoyée : la date affichée est celle d'aujourd'hui. Corrige-la avant d'envoyer une relance.");
       if (/\{[a-zA-Z]+\}/.test(compiled)) warnings.push('Il reste des variables non remplacées dans le texte — relis avant envoi.');
@@ -2751,14 +2785,14 @@ Bien cordialement,
     $('copyAllBtn').addEventListener('click', () => {
       // Colonnes alignées sur ce que sait relire rowsToEntries : l'aller-retour Sheets est réversible.
       const header = ['Studio', 'Poste', 'Reel', 'Priorité', 'Mots-clés', 'À mettre en avant', 'Statut',
-        'Date Envoi', 'Relance', 'Date Réponse', 'Date Entretien', 'Notes', 'Lien', 'Contact', 'Email contact',
+        'Date Envoi', 'Relance', 'Date Réponse', 'Date Entretien', 'Notes', 'Lien', 'Ville', 'Contact', 'Email contact',
         'Accroche'].join('\t');
       const clean = (v) => (v || '').toString().replace(/[\t\r\n]+/g, ' ');
       const rows = entries.map(e => [
         clean(e.studio), clean(e.poste), clean(e.reel), clean(e.priorite),
         (e.motsCles || []).join(' | '), (e.argumentsLettre || []).join(' | '),
         clean(e.statut), clean(e.dateEnvoi), clean(e.relance), clean(e.dateReponse),
-        clean(e.dateEntretien), clean(e.notesEntretien), clean(e.lien),
+        clean(e.dateEntretien), clean(e.notesEntretien), clean(e.lien), clean(e.ville),
         clean(e.contact), clean(e.contactEmail), clean(e.accroche)
       ].join('\t'));
       copyToClipboard([header, ...rows].join('\n'));
@@ -2774,6 +2808,7 @@ Analyse l'offre fournie et réponds UNIQUEMENT par un objet JSON valide, sans te
 
 - studio (string) : le nom de l'entreprise
 - poste (string) : l'intitulé exact du poste
+- ville (string) : la ville du studio ou du poste telle qu'elle apparaît dans l'annonce, chaîne vide si elle n'est pas mentionnée
 - reel ("Animation" ou "Rigging") : lequel des deux reels sert le mieux cette candidature
 - motsCles (tableau de 3 à 5 strings) : les compétences et logiciels exigés par l'annonce
 - priorite ("Haute", "Moyenne" ou "Basse") : Haute si le profil colle vraiment et que le niveau est junior-compatible, Basse si l'offre demande plusieurs années d'expérience ou vise un autre métier
@@ -2820,6 +2855,7 @@ Analyse l'offre fournie et réponds UNIQUEMENT par un objet JSON valide, sans te
         priorite: ['Haute', 'Moyenne', 'Basse'].includes(parsed.priorite) ? parsed.priorite : 'Moyenne',
         note: parsed.note || '',
         accroche: parsed.accroche || '',
+        ville: parsed.ville || '',
         lien: $('jobLink').value.trim()
       };
       fillDraft(draft);
@@ -2870,6 +2906,7 @@ Analyse l'offre fournie et réponds UNIQUEMENT par un objet JSON valide, sans te
       $('dStudio').value = d.studio;
       $('dPoste').value = d.poste;
       $('dLien').value = d.lien || '';
+      $('dVille').value = d.ville || '';
       $('dReel').value = d.reel;
       $('dPriorite').value = d.priorite;
       $('dMotsCles').value = d.motsCles.join(', ');
@@ -2918,6 +2955,7 @@ Analyse l'offre fournie et réponds UNIQUEMENT par un objet JSON valide, sans te
         accroche: $('dAccroche').value.trim(),
         prepaEntretien: '',
         lien: $('dLien').value.trim(),
+        ville: $('dVille').value.trim(),
         contact: $('dContactNom').value.trim(),
         contactEmail: $('dContactEmail').value.trim(),
         statut: 'À traiter',
