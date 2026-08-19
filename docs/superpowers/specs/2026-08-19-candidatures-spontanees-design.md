@@ -89,6 +89,17 @@ Nouvelle variable `{recommandation}`, insérable comme les autres :
 Un seul jeu de modèles à maintenir. Le cas recommandé n'est pas une branche de code.
 La variable est ajoutée aux quatre profils prédéfinis, juste avant `{accroche}`.
 
+**Ajout en cours d'implémentation** : une seconde variable `{ouverture}` s'est révélée
+nécessaire. Les quatre modèles ouvraient sur une clause propre à l'annonce — « je vous écris au
+sujet de votre offre de poste de X », « je réponds à votre offre ». Rendue telle quelle dans une
+candidature spontanée, cette phrase est factuellement fausse : elle invente une offre qui
+n'existe pas. La clause devient donc une variable :
+
+- `origine === 'Annonce'` → « au sujet de votre offre de poste de {poste} »
+- `origine === 'Spontanée'` → « spontanément, pour un poste de {poste} »
+
+Même logique que `{recommandation}` : une variable, pas une branche, et un seul jeu de modèles.
+
 Le `{poste}` d'une spontanée est le poste **visé**, saisi à la main.
 
 ### 6. Relance : J+21 pour le spontané
@@ -138,7 +149,7 @@ Pas de framework, pas de dépendance nouvelle (règle du projet). Un script Node
 - `rowsToEntries` : un CSV à 16 colonnes (format actuel) s'importe sans décalage et avec
   `origine === 'Annonce'` ; un CSV à 19 colonnes relit les trois nouveaux champs ;
 - `compileTemplate` : `{recommandation}` vide supprime sa ligne ; renseignée, elle est
-  substituée ; un modèle sans la variable est rendu inchangé ;
+  substituée ; un modèle sans la variable est rendu inchangé ; `{ouverture}` est substituée ;
 - `parseArguments` : comportement inchangé sur les deux formats.
 
 Lancement : `node tests/non-regression.mjs`. Sortie non nulle en cas d'échec.

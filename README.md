@@ -47,6 +47,35 @@ nom, téléphone, email, lien du portfolio, lien du CV.
 > `.docx` doivent être joints à la main dans le client mail. Alternative : insérer `{cv}` dans
 > le modèle pour envoyer un lien plutôt qu'une pièce jointe.
 
+### Candidater spontanément (avec ou sans recommandation)
+
+Aucune annonce n'est nécessaire : on part du studio.
+
+1. Section **Analyser une offre** → bouton **✋ Candidature spontanée**. Le formulaire s'ouvre
+   vide, le champ « Lien de l'annonce » disparaît, un bloc *Candidature spontanée* apparaît.
+2. Saisir le **studio** et le **poste visé**. Si quelqu'un a accepté d'être cité, remplir
+   **Recommandé par** et **Son lien avec le studio** (ex. « rigger chez eux, promo Rubika
+   2021 »). Laisser vide pour une candidature à froid.
+3. **📋 Copier le prompt de recherche studio** → coller dans Claude.ai ou Gemini. L'IA renvoie
+   le même JSON que pour une annonce, mais construit à partir de ce qu'elle sait du studio :
+   accroche, arguments, mots-clés, **reel conseillé** et une note sur sa fiabilité.
+4. Recoller la réponse dans « Réponse collée » → **Utiliser cette réponse** → le formulaire se
+   remplit. Vérifier, puis **✍️ Ajouter et rédiger la lettre**.
+
+> **Le point de vigilance.** Sans annonce, l'IA n'a aucun texte source et son biais naturel est
+> de combler le vide. Le prompt lui interdit d'inventer un titre de production, un chiffre ou
+> un nom, et lui impose de préfixer « à vérifier : » tout élément supposé — mais un bandeau
+> orange permanent rappelle dans le générateur qu'il faut **vérifier sur le site du studio**
+> avant l'envoi. Une lettre qui félicite un studio pour un film qu'il n'a pas fait est perdue.
+
+La phrase de recommandation est ajoutée automatiquement en tête de lettre par la variable
+`{recommandation}` : rien à rédiger à la main, et elle disparaît proprement s'il n'y a pas de
+recommandant. La clause d'ouverture s'adapte elle aussi — une lettre spontanée ne parle jamais
+de « votre offre ».
+
+**La relance est planifiée à J+21**, et non J+7 : aucune échéance ne court côté studio, et
+relancer à une semaine ne signale que l'impatience.
+
 ### Préparer un entretien
 
 Bouton **🎯 Prépa** sur la ligne concernée. Il ouvre l'onglet *Prépa entretien* du générateur :
@@ -68,9 +97,13 @@ Bouton **🎯 Prépa** sur la ligne concernée. Il ouvre l'onglet *Prépa entret
 
 ### Mesurer ce qui marche
 
-Section **Stats** : taux de réponse global, taux d'entretien, et surtout **taux de réponse par
-reel** (Animation vs Rigging). Après une trentaine de candidatures, ces chiffres disent si le
-problème vient du ciblage ou de la lettre.
+Section **Stats** : taux de réponse global, taux d'entretien, **taux de réponse par reel**
+(Animation vs Rigging) et **taux de réponse par origine** (réponse à annonce, spontanée froide,
+spontanée recommandée). Après une trentaine de candidatures, ces chiffres disent si le problème
+vient du ciblage ou de la lettre — et si demander une recommandation vaut l'effort.
+
+Le tableau de suivi se filtre par origine, et une ligne spontanée porte un marqueur
+`✋ Spontanée` avec, le cas échéant, le nom du recommandant.
 
 ---
 
@@ -122,7 +155,10 @@ La feuille doit rester **privée**. L'échange se fait à la main, dans les deux
 | **Vers Sheets** | Bouton **☁️ Copier pour Sheet** → `Ctrl+V` dans la cellule A1 |
 | **Depuis Sheets** | Dans la feuille : `Fichier > Télécharger > CSV`, puis **📂 Importer** |
 
-Les 16 colonnes exportées sont relues à l'identique — l'aller-retour ne perd rien.
+Les 19 colonnes exportées sont relues à l'identique — l'aller-retour ne perd rien. Les trois
+dernières (`Origine`, `Recommandant`, `Rôle recommandant`) ont été **ajoutées en fin de ligne**
+pour ne déplacer aucune colonne existante : une feuille ou un CSV antérieur, à 16 colonnes,
+s'importe toujours sans décalage et ses dossiers sont lus comme des réponses à annonce.
 Pour une sauvegarde de sécurité, préférer quand même le JSON : Sheets reformate les dates et
 aplatit les listes de mots-clés.
 
@@ -217,6 +253,8 @@ Bouton **✉️ Modèles**. Quatre profils prédéfinis (Classique, Rigging, Ani
 |---|---|---|
 | `{studio}` `{poste}` `{reel}` | Analyse de l'offre | |
 | `{accroche}` | Analyse de l'offre | **La variable clé** : 2-3 phrases propres à ce studio |
+| `{recommandation}` | Fiche de la candidature | « X, rigger chez eux, m'a suggéré de vous écrire. » — vide, et sans recommandant, la ligne disparaît |
+| `{ouverture}` | Origine de la candidature | « au sujet de votre offre de poste de X » ou « spontanément, pour un poste de X » |
 | `{argumentsLettre}` | Analyse de l'offre | Paragraphe dans la lettre, puces dans les mails |
 | `{motsCles}` | Analyse de l'offre | Rendu « Compétences cibles : … » |
 | `{contact}` `{lien}` | Fiche de la candidature | |
@@ -231,9 +269,11 @@ qu'il ne reste qu'un libellé — ainsi `🎬 Demo reel : {lienReel}` s'efface a
 « 🎬 Demo reel : » orphelin. Un titre sans variable, comme `Atouts clés :`, est toujours
 conservé. Si une variable n'est pas reconnue, un avertissement s'affiche avant l'export.
 
-> Les modèles enregistrés **avant** l'ajout de `{accroche}` ne l'utilisent pas. Un toast le
-> signale à l'ouverture du panneau ; il suffit de cliquer sur le bouton `{accroche}` pour
-> l'insérer, ou de faire **Réinitialiser par Défaut**.
+> Les modèles enregistrés **avant** l'ajout de `{accroche}`, `{recommandation}` ou
+> `{ouverture}` ne les utilisent pas — ils continuent de fonctionner à l'identique, mais sans la
+> phrase de recommandation ni l'adaptation au spontané. Un toast liste les variables manquantes
+> à l'ouverture du panneau ; il suffit de cliquer sur le bouton correspondant pour les insérer,
+> ou de faire **Réinitialiser par Défaut**.
 
 ---
 
@@ -318,6 +358,12 @@ bloqués, et un seul accès non protégé interrompt tout le script.
   (qui rejette `javascript:`). Les données viennent de copier-coller et de fichiers CSV.
 - **Les statuts venant de l'extérieur passent par `normalizeStatut()`.** Le tableau affiche un
   `<select>` à valeurs fixes ; un statut inconnu serait silencieusement réinitialisé.
+- **Les origines venant de l'extérieur passent par `normalizeOrigine()`**, qui retombe sur
+  `'Annonce'`. C'est ce qui rend rétrocompatibles les dossiers créés avant l'ajout du champ.
+- **« Spontanée recommandée » n'est pas une valeur stockée** : c'est `estRecommandee()`, dérivé
+  de l'origine et du recommandant. N'introduire aucun troisième état.
+- **Les colonnes CSV sont repérées par leur nom, jamais par leur position** (`getIdx`). C'est
+  ce qui permet d'ajouter des colonnes sans casser les fichiers déjà exportés.
 - **Pas de clé d'API secrète dans le navigateur**, hormis la clé Gemini assumée comme telle.
 
 ### Ce qui n'existe pas (volontairement)
@@ -339,6 +385,18 @@ python3 -m http.server 8777
 
 Puis ouvrir `http://localhost:8777/`. Ouvrir le fichier en `file://` **ne fonctionne pas** :
 `localStorage` y est indisponible.
+
+**Tests de non-régression** — aucune dépendance, aucun framework :
+
+```bash
+node tests/non-regression.mjs
+```
+
+Le script extrait les fonctions pures d'`index.html` par leur nom et les évalue hors DOM. Il
+couvre les points où une régression détruirait des données : `normalizeStatut`,
+`normalizeOrigine`, l'import CSV (formats 16 et 19 colonnes), `compileTemplate` et
+`parseArguments`. À lancer avant tout commit touchant à ces fonctions — **et à compléter quand
+on en renomme une**, l'extraction se faisant par nom.
 
 ---
 

@@ -905,6 +905,8 @@
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{poste}">{poste}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{reel}">{reel}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{accroche}">{accroche}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{recommandation}">{recommandation}</button>
+          <button class="btn-ghost btn-small tpl-var-btn" data-var="{ouverture}">{ouverture}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{argumentsLettre}">{argumentsLettre}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{motsCles}">{motsCles}</button>
           <button class="btn-ghost btn-small tpl-var-btn" data-var="{contact}">{contact}</button>
@@ -970,6 +972,8 @@
           <button class="btn-ghost btn-small gen-var-btn" data-var="{studio}">{studio}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{poste}">{poste}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{accroche}">{accroche}</button>
+          <button class="btn-ghost btn-small gen-var-btn" data-var="{recommandation}">{recommandation}</button>
+          <button class="btn-ghost btn-small gen-var-btn" data-var="{ouverture}">{ouverture}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{argumentsLettre}">{argumentsLettre}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{motsCles}">{motsCles}</button>
           <button class="btn-ghost btn-small gen-var-btn" data-var="{contact}">{contact}</button>
@@ -1117,6 +1121,7 @@
       <div class="action-row">
         <button class="btn-primary" id="copyPromptBtn">📋 Copier le prompt (recommandé — gratuit)</button>
         <button class="btn-ghost" id="analyzeBtn" title="Nécessite une clé API Gemini">⚡ Analyser automatiquement (clé API)</button>
+        <button class="btn-ghost" id="spontaneeBtn" title="Aucune annonce : on part du studio">✋ Candidature spontanée</button>
       </div>
       <p class="hint" style="margin-top:10px;">Mode recommandé : « Copier le prompt », puis coller dans Claude.ai ou
         Gemini dans un autre onglet, et recoller la réponse ci-dessous. Aucune clé API à stocker.</p>
@@ -1150,9 +1155,29 @@
         <label for="dPoste">Poste</label>
         <input type="text" id="dPoste">
       </div>
-      <div class="field">
+      <div class="field" id="dLienWrap">
         <label for="dLien">Lien de l'annonce</label>
         <input type="text" id="dLien" placeholder="https://...">
+      </div>
+      <div id="dSpontaneeWrap" style="display:none; background:var(--panel-raised); border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-bottom:16px;">
+        <label style="margin-bottom:8px;">Candidature spontanée</label>
+        <p class="hint" style="margin:0 0 10px;">Aucune annonce ne sert de source. Renseigne le studio et le
+          poste visé ci-dessus, puis copie le prompt : l'IA renvoie le même JSON que pour une offre,
+          construit à partir de ce qu'elle sait du studio.</p>
+        <div class="row2">
+          <div class="field" style="margin-bottom:0;">
+            <label for="dRecommandant">Recommandé par (laisser vide si aucune recommandation)</label>
+            <input type="text" id="dRecommandant" placeholder="Ex. Julie Martin">
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label for="dRecommandantRole">Son lien avec le studio</label>
+            <input type="text" id="dRecommandantRole" placeholder="Ex. rigger chez eux, promo Rubika 2021">
+          </div>
+        </div>
+        <div class="action-row" style="margin-top:12px;">
+          <button class="btn-primary btn-small" id="copySpontaneePromptBtn">📋 Copier le prompt de recherche studio</button>
+        </div>
+        <div class="status-line" id="spontaneeStatus"></div>
       </div>
       <div class="row2">
         <div class="field">
@@ -1217,6 +1242,12 @@
         <select id="filterStatut">
           <option value="">Tous les statuts</option>
         </select>
+        <select id="filterOrigine">
+          <option value="">Toutes les origines</option>
+          <option value="Annonce">Réponses à annonce</option>
+          <option value="Spontanée">Spontanées</option>
+          <option value="Spontanée recommandée">Spontanées recommandées</option>
+        </select>
         <select id="filterSort">
           <option value="relance">Trier : relance la plus urgente</option>
           <option value="recent">Trier : ajout le plus récent</option>
@@ -1260,6 +1291,10 @@
       <div class="stats-grid" id="statsGrid"></div>
       <h3 class="form-subhead">Taux de réponse par reel envoyé</h3>
       <div class="stats-grid" id="statsReel"></div>
+      <h3 class="form-subhead">Taux de réponse par origine</h3>
+      <p class="hint">Une vague de spontanées froides écrase le taux global : c'est ici qu'on voit
+        si demander une recommandation vaut l'effort.</p>
+      <div class="stats-grid" id="statsOrigine"></div>
     </div>
 
     <footer>Les données restent stockées localement dans votre navigateur.</footer>
@@ -1276,9 +1311,22 @@
     const STATUTS_REPONSE = ['Entretien', 'Refus'];
     /** Statuts qui prouvent qu'une candidature est effectivement partie. */
     const STATUTS_ENVOYE = ['Envoyé', 'Relancé', 'Entretien', 'Refus', 'Sans réponse'];
+    /** D'où vient la candidature. « Spontanée recommandée » n'est pas une valeur : c'est
+     *  origine === 'Spontanée' avec un recommandant renseigné. */
+    const ORIGINES = ['Annonce', 'Spontanée'];
+    /**
+     * Délai de relance initial, en jours, selon l'origine.
+     * Why: en spontané, aucune échéance ne court côté studio ; relancer à J+7 ne signale
+     * que l'impatience. J+21 laisse le temps qu'un mail non sollicité remonte.
+     */
+    const RELANCE_JOURS = { 'Annonce': 7, 'Spontanée': 21 };
+    /** Une relance repousse l'échéance de 14 j, sinon on se relance en boucle. */
+    const RELANCE_JOURS_APRES_RELANCE = 14;
 
     let entries = [];
     let draft = null;
+    /** Origine du dossier en cours de saisie dans le draftPanel. */
+    let draftOrigine = 'Annonce';
     let profil = {};
 
     const $ = (id) => document.getElementById(id);
@@ -1319,6 +1367,44 @@
       if (s.includes('sans')) return 'Sans réponse';
       if (s.includes('reel')) return 'Reel à envoyer';
       return 'À traiter';
+    }
+
+    /**
+     * Normalizes an origine coming from an older save, a CSV or a Google Sheet.
+     * Why: entries created before this field existed have no `origine`; a missing or unknown
+     * value must read as "Annonce", which is what every historical dossier actually is.
+     * @param {string} raw - Arbitrary origin string
+     * @returns {string} One of ORIGINES
+     */
+    function normalizeOrigine(raw) {
+      const s = (raw || '').toString().trim().toLowerCase();
+      if (!s) return 'Annonce';
+      if (s.includes('spontan')) return 'Spontanée';
+      return 'Annonce';
+    }
+
+    /**
+     * Tells whether an entry is a spontaneous application backed by a referral.
+     * Why: derived rather than stored, so there is no third state to keep in sync.
+     * @param {Object} e - Entry
+     * @returns {boolean}
+     */
+    function estRecommandee(e) {
+      return normalizeOrigine(e.origine) === 'Spontanée' && !!(e.recommandant || '').trim();
+    }
+
+    /**
+     * Builds the sentence that names the referrer, for the {recommandation} variable.
+     * @param {Object} e - Entry
+     * @returns {string} Empty when there is no referrer
+     */
+    function phraseRecommandation(e) {
+      const nom = (e.recommandant || '').trim();
+      if (!nom) return '';
+      const role = (e.recommandantRole || '').trim();
+      return role
+        ? `${nom}, ${role}, m'a suggéré de vous écrire.`
+        : `${nom} m'a suggéré de vous écrire.`;
     }
 
     /**
@@ -1452,6 +1538,9 @@
         argumentsLettre: Array.isArray(e.argumentsLettre) ? e.argumentsLettre : [],
         accroche: e.accroche || '',
         prepaEntretien: e.prepaEntretien || '',
+        origine: normalizeOrigine(e.origine),
+        recommandant: e.recommandant || '',
+        recommandantRole: e.recommandantRole || '',
         contactEmail: e.contactEmail || (/@/.test(e.contact || '') ? e.contact : ''),
         contact: /@/.test(e.contact || '') ? '' : (e.contact || '')
       }));
@@ -1486,13 +1575,20 @@
     function visibleEntries() {
       const q = ($('filterSearch')?.value || '').trim().toLowerCase();
       const statut = $('filterStatut')?.value || '';
+      const origine = $('filterOrigine')?.value || '';
       const sort = $('filterSort')?.value || 'relance';
 
       let list = entries.filter(e => {
         if (statut && e.statut !== statut) return false;
+        if (origine === 'Spontanée recommandée') {
+          if (!estRecommandee(e)) return false;
+        } else if (origine && normalizeOrigine(e.origine) !== origine) {
+          return false;
+        }
         if (filterDueOnly && !isRelanceDue(e)) return false;
         if (!q) return true;
         const hay = [e.studio, e.poste, e.contact, e.contactEmail, e.notesEntretien, e.reel, e.statut,
+        e.origine, e.recommandant, e.recommandantRole,
         (e.motsCles || []).join(' '), (e.argumentsLettre || []).join(' ')].join(' ').toLowerCase();
         return hay.includes(q);
       });
@@ -1534,6 +1630,11 @@
       <td class="idx">${String(i + 1).padStart(2, '0')}${isRelanceDue(e) ? ' ⏰' : ''}</td>
       <td class="studio-cell">
         <b>${escapeHtml(e.studio)}</b><span>${escapeHtml(e.poste)}</span>
+        ${normalizeOrigine(e.origine) === 'Spontanée'
+            ? `<span class="kw-mini">${estRecommandee(e)
+              ? `✋ Spontanée · recommandée par ${escapeHtml(e.recommandant)}`
+              : '✋ Spontanée'}</span>`
+            : ''}
         ${href ? `<a class="cell-link" href="${escapeHtml(href)}" target="_blank" rel="noopener">Voir l'annonce ↗</a>` : ''}
       </td>
       <td class="contact-cell">
@@ -1682,6 +1783,18 @@
         const a = s.filter(e => STATUTS_REPONSE.includes(e.statut));
         return `<div class="stat-box"><span class="v">${pct(a.length, s.length)}</span><span class="k">Reel ${r}</span><div class="d">${a.length} réponse${a.length > 1 ? 's' : ''} sur ${s.length} envoi${s.length > 1 ? 's' : ''}</div></div>`;
       }).join('');
+
+      const parOrigine = [
+        ['Réponse à annonce', e => normalizeOrigine(e.origine) === 'Annonce'],
+        ['Spontanée froide', e => normalizeOrigine(e.origine) === 'Spontanée' && !estRecommandee(e)],
+        ['Spontanée recommandée', e => estRecommandee(e)]
+      ];
+      $('statsOrigine').innerHTML = parOrigine.map(([label, match]) => {
+        const s = sent.filter(match);
+        const a = s.filter(e => STATUTS_REPONSE.includes(e.statut));
+        const i = s.filter(e => e.statut === 'Entretien');
+        return `<div class="stat-box"><span class="v">${pct(a.length, s.length)}</span><span class="k">${label}</span><div class="d">${a.length} réponse${a.length > 1 ? 's' : ''} et ${i.length} entretien${i.length > 1 ? 's' : ''} sur ${s.length} envoi${s.length > 1 ? 's' : ''}</div></div>`;
+      }).join('');
     }
 
     /**
@@ -1696,6 +1809,11 @@ CONTEXTE
 - Poste : ${e.poste}
 - Studio : ${e.studio}
 - Secteur : animation 3D / VFX / jeu vidéo
+- Origine de la candidature : ${normalizeOrigine(e.origine) === 'Spontanée'
+        ? (estRecommandee(e)
+          ? `candidature spontanée, recommandée par ${e.recommandant}${e.recommandantRole ? ` (${e.recommandantRole})` : ''}. Prévois une question sur ce lien.`
+          : "candidature spontanée, sans recommandation ni annonce. Le studio n'a pas exprimé de besoin : prévois la question « pourquoi nous écrivez-vous ? » et une réponse sur ce que le candidat apporterait.")
+        : "réponse à une annonce"}
 - Candidat : Hippolyte Combault, jeune diplômé de Rubika. Double compétence rigging + animation 3D. Lead Rigger ET Lead Animateur sur son film de fin d'études « Icefall » (équipe de six). Maya, Python, auto-rigs, outils de pipeline. Objectif à terme : animateur 3D. Basé à Paris, mobile, privilégie le présentiel.
 - Mots-clés de l'annonce : ${(e.motsCles || []).join(', ') || 'non renseignés'}
 - Arguments utilisés dans ma candidature : ${(e.argumentsLettre || []).join(' / ') || 'non renseignés'}
@@ -1802,7 +1920,7 @@ Sois direct et concret. Pas de généralités applicables à n'importe quel stud
       });
     }
 
-    ['filterSearch', 'filterStatut', 'filterSort'].forEach(id => {
+    ['filterSearch', 'filterStatut', 'filterOrigine', 'filterSort'].forEach(id => {
       $(id).addEventListener('input', render);
     });
 
@@ -2090,6 +2208,12 @@ Sois direct et concret. Pas de généralités applicables à n'importe quel stud
         const idxNotes = getIdx(['notes', 'remarques', 'commentaire']);
         const idxLien = getIdx(['lien', 'url', 'annonce']);
         const idxAccroche = getIdx(['accroche']);
+        const idxOrigine = getIdx(['origine']);
+        // « Rôle recommandant » contient aussi « recommandant » : sans l'exclusion explicite,
+        // la colonne du nom capterait la première des deux et le rôle serait perdu.
+        const idxRecoRole = headers.findIndex(h => h.includes('recommand')
+          && (h.includes('role') || h.includes('rôle') || h.includes('lien')));
+        const idxReco = headers.findIndex((h, i) => i !== idxRecoRole && h.includes('recommand'));
         // Deux colonnes distinctes : « Contact » (nom) et « Email contact ». Sans l'exclusion
         // explicite d'« email », la colonne nom capterait les deux et l'adresse serait perdue.
         const idxContactEmail = headers.findIndex(h => h.includes('email') || h.includes('mail'));
@@ -2142,7 +2266,12 @@ Sois direct et concret. Pas de généralités applicables à n'importe quel stud
             lien: idxLien >= 0 ? r[idxLien] : '',
             accroche: idxAccroche >= 0 ? (r[idxAccroche] || '') : '',
             contact: isEmail ? '' : contactRaw,
-            contactEmail: emailRaw || (isEmail ? contactRaw : '')
+            contactEmail: emailRaw || (isEmail ? contactRaw : ''),
+            // Un fichier antérieur n'a pas ces colonnes : idx === -1 et l'entrée retombe
+            // sur « Annonce », ce que sont effectivement tous les dossiers historiques.
+            origine: normalizeOrigine(idxOrigine >= 0 ? r[idxOrigine] : ''),
+            recommandant: idxReco >= 0 ? (r[idxReco] || '') : '',
+            recommandantRole: idxRecoRole >= 0 ? (r[idxRecoRole] || '') : ''
           });
         }
 
@@ -2252,7 +2381,9 @@ Sois direct et concret. Pas de généralités applicables à n'importe quel stud
 
 Bonjour {contact},
 
-Fraîchement diplômé de Rubika, je vous écris au sujet de votre offre de poste de {poste}.
+Fraîchement diplômé de Rubika, je vous écris {ouverture}.
+
+{recommandation}
 
 {accroche}
 
@@ -2276,6 +2407,8 @@ Demo reel : {lienReel}`;
 Bonjour {contact},
 
 Veuillez trouver ci-joint ma candidature pour le poste de {poste} au sein de {studio}.
+
+{recommandation}
 
 Passionné par l'animation 3D et le rigging (diplômé de Rubika), vous trouverez ma lettre de motivation et mon portfolio/demo reel ci-dessous :
 🔗 Profil : {portfolio}
@@ -2312,7 +2445,9 @@ Bien cordialement,
 
 Bonjour {contact},
 
-Spécialiste du rigging 3D diplômé de Rubika, je souhaite proposer ma candidature pour le poste de {poste} au sein de {studio}.
+Spécialiste du rigging 3D diplômé de Rubika, je vous écris {ouverture} au sein de {studio}.
+
+{recommandation}
 
 {accroche}
 
@@ -2350,7 +2485,9 @@ Au plaisir d'échanger prochainement,
 
 Bonjour {contact},
 
-Diplômé de Rubika, attaché à l'acting et au body mechanics, je pose ma candidature pour le poste de {poste} au sein de {studio}.
+Diplômé de Rubika, attaché à l'acting et au body mechanics, je vous écris {ouverture} au sein de {studio}.
+
+{recommandation}
 
 {accroche}
 
@@ -2385,7 +2522,9 @@ Bien cordialement,
 
 Bonjour {contact},
 
-Diplômé de Rubika (Animation 3D / Rigging), je réponds à votre offre pour le poste de {poste} chez {studio}.
+Diplômé de Rubika (Animation 3D / Rigging), je vous écris {ouverture} chez {studio}.
+
+{recommandation}
 
 {accroche}
 
@@ -2424,9 +2563,11 @@ Bien cordialement,
       $('cfgTplMailRelance').value = lsGet(TPL_MAIL_RELANCE_KEY) || DEFAULT_TPL_MAIL_RELANCE;
       panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
       activeTplTextarea = $('cfgTplLettre');
-      // Un modèle enregistré avant l'ajout de {accroche} n'en bénéficie pas silencieusement.
-      if (!$('cfgTplLettre').value.includes('{accroche}')) {
-        showToast("Ton modèle de lettre n'utilise pas encore {accroche} — insère-la pour personnaliser par studio.");
+      // Un modèle enregistré avant l'ajout d'une variable n'en bénéficie pas silencieusement.
+      const manquantes = ['{accroche}', '{recommandation}', '{ouverture}']
+        .filter(v => !$('cfgTplLettre').value.includes(v));
+      if (manquantes.length) {
+        showToast(`Ton modèle de lettre n'utilise pas encore ${manquantes.join(', ')} — insère-les pour la personnalisation par studio, la recommandation et les candidatures spontanées.`);
       }
     });
 
@@ -2574,7 +2715,8 @@ Bien cordialement,
       const contact = currentDocEntry.contact || 'l\'équipe de recrutement';
       const lien = currentDocEntry.lien || '';
       const dateEnvoi = currentDocEntry.dateEnvoi || todayISO();
-      const dateRelance = currentDocEntry.relance || plusDaysISO(7);
+      const dateRelance = currentDocEntry.relance
+        || plusDaysISO(RELANCE_JOURS[normalizeOrigine(currentDocEntry.origine)] ?? RELANCE_JOURS['Annonce']);
 
       const argsArr = (currentDocEntry.argumentsLettre || []).filter(Boolean);
       // Dans une lettre, une liste à puces au milieu d'un texte suivi fait bricolage : les
@@ -2598,9 +2740,16 @@ Bien cordialement,
         tpl = lsGet(TPL_MAIL_RELANCE_KEY) || DEFAULT_TPL_MAIL_RELANCE;
       }
 
+      // Une lettre spontanée qui parle de « votre offre » est factuellement fausse : la
+      // clause d'ouverture est donc une variable, pas du texte figé dans le modèle.
+      const ouverture = normalizeOrigine(currentDocEntry.origine) === 'Spontanée'
+        ? `spontanément, pour un poste de ${poste}`
+        : `au sujet de votre offre de poste de ${poste}`;
+
       const vars = {
-        studio, poste, reel, contact, lien,
+        studio, poste, reel, contact, lien, ouverture,
         accroche: currentDocEntry.accroche || '',
+        recommandation: phraseRecommandation(currentDocEntry),
         argumentsLettre: argsStr,
         motsCles: kwStr,
         dateEnvoi: formatDateFr(dateEnvoi),
@@ -2623,6 +2772,9 @@ Bien cordialement,
       $('docGenTitle').textContent = `Document — ${studio} (${poste})`;
 
       const warnings = [];
+      if (normalizeOrigine(currentDocEntry.origine) === 'Spontanée') {
+        warnings.push("Candidature spontanée : aucune annonce ne sert de source. Vérifier sur le site du studio toute production ou information citée avant l'envoi.");
+      }
       const missing = missingProfilFields();
       if (missing.length) warnings.push(`Profil incomplet (${missing.join(', ')}) — clique sur « 👤 Profil ».`);
       if (!currentDocEntry.contact) warnings.push('Pas de nom de contact : la lettre commencera par une formule impersonnelle.');
@@ -2736,8 +2888,8 @@ Bien cordialement,
       const isRelance = currentDocTab === 'mailRelance';
       currentDocEntry.statut = isRelance ? 'Relancé' : 'Envoyé';
       if (!currentDocEntry.dateEnvoi) currentDocEntry.dateEnvoi = todayISO();
-      // Une relance repousse l'échéance plus loin (14 j) : sinon on se relance en boucle tous les 7 jours.
-      currentDocEntry.relance = plusDaysISO(isRelance ? 14 : 7);
+      const delai = RELANCE_JOURS[normalizeOrigine(currentDocEntry.origine)] ?? RELANCE_JOURS['Annonce'];
+      currentDocEntry.relance = plusDaysISO(isRelance ? RELANCE_JOURS_APRES_RELANCE : delai);
       saveEntries();
       render();
       showToast(`Candidature chez ${currentDocEntry.studio} mise à jour en '${currentDocEntry.statut}' !`);
@@ -2752,14 +2904,15 @@ Bien cordialement,
       // Colonnes alignées sur ce que sait relire rowsToEntries : l'aller-retour Sheets est réversible.
       const header = ['Studio', 'Poste', 'Reel', 'Priorité', 'Mots-clés', 'À mettre en avant', 'Statut',
         'Date Envoi', 'Relance', 'Date Réponse', 'Date Entretien', 'Notes', 'Lien', 'Contact', 'Email contact',
-        'Accroche'].join('\t');
+        'Accroche', 'Origine', 'Recommandant', 'Rôle recommandant'].join('\t');
       const clean = (v) => (v || '').toString().replace(/[\t\r\n]+/g, ' ');
       const rows = entries.map(e => [
         clean(e.studio), clean(e.poste), clean(e.reel), clean(e.priorite),
         (e.motsCles || []).join(' | '), (e.argumentsLettre || []).join(' | '),
         clean(e.statut), clean(e.dateEnvoi), clean(e.relance), clean(e.dateReponse),
         clean(e.dateEntretien), clean(e.notesEntretien), clean(e.lien),
-        clean(e.contact), clean(e.contactEmail), clean(e.accroche)
+        clean(e.contact), clean(e.contactEmail), clean(e.accroche),
+        clean(normalizeOrigine(e.origine)), clean(e.recommandant), clean(e.recommandantRole)
       ].join('\t'));
       copyToClipboard([header, ...rows].join('\n'));
       showToast('Tableau copié (pour Sheets / Notion)');
@@ -2781,7 +2934,69 @@ Analyse l'offre fournie et réponds UNIQUEMENT par un objet JSON valide, sans te
 - accroche (string) : 2 à 3 phrases rédigées à la première personne, PROPRES À CE STUDIO ET À CETTE ANNONCE, montrant qu'Hippolyte a lu l'offre et connaît le studio. Cite un projet, une technologie ou une exigence précise du texte. Interdiction absolue des formules passe-partout du type « je suis très motivé » ou « votre studio est reconnu ». Pas de superlatif creux.
 - argumentsLettre (tableau de 2 à 4 strings) : chaque élément doit être une PHRASE COMPLÈTE, à la première personne, terminée par un point, reliant une exigence précise de l'annonce à une expérience concrète d'Hippolyte. Pas de mots-clés isolés, pas de fragments nominaux.`;
 
+    /*
+     * Prompt de candidature spontanée.
+     * Why: sans annonce, l'IA n'a aucun texte source et son biais naturel est de combler le
+     * vide — un titre de production inventé dans une lettre coûte la candidature. Le contrat
+     * JSON reste identique à celui de l'analyse d'annonce pour que tout l'aval soit inchangé.
+     */
+    const SPONTANEE_SYSTEM_PROMPT = `Tu prépares une CANDIDATURE SPONTANÉE dans l'animation 3D, le VFX et le jeu vidéo. Il n'y a AUCUNE annonce : le candidat écrit de sa propre initiative à un studio qu'il a choisi.
+
+Le candidat : Hippolyte Combault, jeune diplômé de Rubika, double compétence rigging + animation 3D. Lead Rigger ET Lead Animateur sur son film de fin d'études « Icefall » (équipe de six). Maya, Python, auto-rigs, outils de pipeline. Objectif à terme : animateur 3D, mais le rigging est son point d'entrée le plus solide. Basé à Paris, mobile, privilégie le présentiel.
+
+RÈGLES DE VÉRACITÉ — les plus importantes de ce prompt :
+- N'invente JAMAIS un titre de production, un chiffre, un logiciel, un nom de personne ou une information de pipeline concernant le studio.
+- Tout élément dont tu n'es pas certain doit être préfixé « à vérifier : » à l'intérieur même du texte concerné.
+- Si tu ne connais pas ce studio, dis-le explicitement dans « note », et rends une accroche générique mais honnête plutôt qu'une accroche inventée. Une accroche fade se corrige ; une accroche fausse fait perdre la candidature.
+
+Réponds UNIQUEMENT par un objet JSON valide, sans texte ni balise markdown avant ou après, avec exactement ces clés :
+
+- studio (string) : le nom du studio, repris tel quel
+- poste (string) : le poste visé, repris tel quel
+- reel ("Animation" ou "Rigging") : lequel des deux reels sert le mieux CE studio, au vu de ce que tu sais de son pipeline et de ses productions. Justifie ce choix dans « note ».
+- motsCles (tableau de 3 à 5 strings) : les compétences et logiciels que ce studio est susceptible d'attendre
+- priorite ("Haute", "Moyenne" ou "Basse") : Haute si le studio recrute plausiblement des juniors sur ce métier, Basse si sa taille ou son positionnement rend une spontanée junior peu réaliste
+- note (string) : 2 à 3 phrases. Ce que tu sais du studio VS ce que tu supposes, la justification du reel conseillé, et le degré de fiabilité de ta connaissance de ce studio.
+- accroche (string) : 2 à 3 phrases à la première personne, expliquant pourquoi CE studio et pas un autre. Appuie-toi sur ce que le studio FAIT (type de production, style, technique), jamais sur ce qu'il demanderait. Interdiction absolue des formules passe-partout du type « je suis très motivé » ou « votre studio est reconnu ». Pas de superlatif creux.
+- argumentsLettre (tableau de 2 à 4 strings) : chaque élément est une PHRASE COMPLÈTE, à la première personne, terminée par un point, reliant un besoin plausible de ce studio à une expérience concrète d'Hippolyte. Pas de mots-clés isolés, pas de fragments nominaux.`;
+
+    $('spontaneeBtn').addEventListener('click', () => {
+      draft = null;
+      fillDraft({
+        studio: '', poste: '', lien: '', reel: 'Animation', priorite: 'Moyenne',
+        motsCles: [], argumentsLettre: [], accroche: '', contact: '', contactEmail: ''
+      });
+      $('dNoteWrap').style.display = 'none';
+      setDraftMode('Spontanée', true);
+      $('draftPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      $('dStudio').focus();
+    });
+
+    $('copySpontaneePromptBtn').addEventListener('click', () => {
+      const studio = $('dStudio').value.trim();
+      if (!studio) {
+        showToast('Renseigne le nom du studio au-dessus.');
+        $('dStudio').focus();
+        return;
+      }
+      const poste = $('dPoste').value.trim() || 'Rigger ou Animateur 3D junior';
+      const reco = $('dRecommandant').value.trim();
+      const role = $('dRecommandantRole').value.trim();
+      const contexte = [
+        `- Studio visé : ${studio}`,
+        `- Poste visé : ${poste}`,
+        reco
+          ? `- Le candidat est recommandé par ${reco}${role ? ` (${role})` : ''}. Cette personne autorise à être citée, mais ne transmet pas le dossier elle-même. N'écris PAS la phrase de recommandation : elle est ajoutée automatiquement en tête de lettre.`
+          : "- Aucune recommandation : la candidature arrive à froid."
+      ].join('\n');
+      copyToClipboard(`${SPONTANEE_SYSTEM_PROMPT}\n\nCONTEXTE\n${contexte}`);
+      showToast('Prompt copié ! Colle-le dans Claude.ai ou Gemini.');
+      $('manualResponseWrap').style.display = 'block';
+      $('spontaneeStatus').textContent = "Colle la réponse JSON dans « Analyser une offre », section « Réponse collée », puis clique sur « Utiliser cette réponse ».";
+    });
+
     $('copyPromptBtn').addEventListener('click', () => {
+      setDraftMode('Annonce', true);
       const text = $('jobText').value.trim();
       if (!text) {
         showToast("Colle le texte de l'annonce d'abord.");
@@ -2820,7 +3035,7 @@ Analyse l'offre fournie et réponds UNIQUEMENT par un objet JSON valide, sans te
         priorite: ['Haute', 'Moyenne', 'Basse'].includes(parsed.priorite) ? parsed.priorite : 'Moyenne',
         note: parsed.note || '',
         accroche: parsed.accroche || '',
-        lien: $('jobLink').value.trim()
+        lien: draftOrigine === 'Spontanée' ? '' : $('jobLink').value.trim()
       };
       fillDraft(draft);
       if (statusEl) statusEl.textContent = '';
@@ -2849,6 +3064,7 @@ Analyse l'offre fournie et réponds UNIQUEMENT par un objet JSON valide, sans te
     // dans le localStorage d'une page publique. Utiliser « Copier le prompt » avec Claude.ai.
 
     $('analyzeBtn').addEventListener('click', async () => {
+      setDraftMode('Annonce', true);
       const status = $('analyzeStatus');
       const text = $('jobText').value.trim();
       if (!text) {
@@ -2865,6 +3081,26 @@ Analyse l'offre fournie et réponds UNIQUEMENT par un objet JSON valide, sans te
         status.classList.add('error');
       }
     });
+
+    /**
+     * Switches the draft form between "réponse à annonce" and "candidature spontanée".
+     * Why: the two modes need different fields — an annonce has a link, a spontanée has a
+     * referrer — and mixing them on screen is how a link to nothing ends up in a letter.
+     * @param {string} origine - One of ORIGINES
+     * @param {boolean} reset - Clears the referrer fields (new dossier, not a re-render)
+     */
+    function setDraftMode(origine, reset) {
+      draftOrigine = normalizeOrigine(origine);
+      const spontanee = draftOrigine === 'Spontanée';
+      $('dSpontaneeWrap').style.display = spontanee ? 'block' : 'none';
+      $('dLienWrap').style.display = spontanee ? 'none' : 'block';
+      if (reset) {
+        $('dRecommandant').value = '';
+        $('dRecommandantRole').value = '';
+        $('spontaneeStatus').textContent = '';
+      }
+      if (spontanee) $('dLien').value = '';
+    }
 
     function fillDraft(d) {
       $('dStudio').value = d.studio;
@@ -2887,6 +3123,7 @@ Analyse l'offre fournie et réponds UNIQUEMENT par un objet JSON valide, sans te
     $('discardBtn').addEventListener('click', () => {
       $('draftPanel').style.display = 'none';
       draft = null;
+      setDraftMode('Annonce', true);
     });
 
     /**
@@ -2921,6 +3158,9 @@ Analyse l'offre fournie et réponds UNIQUEMENT par un objet JSON valide, sans te
         contact: $('dContactNom').value.trim(),
         contactEmail: $('dContactEmail').value.trim(),
         statut: 'À traiter',
+        origine: draftOrigine,
+        recommandant: draftOrigine === 'Spontanée' ? $('dRecommandant').value.trim() : '',
+        recommandantRole: draftOrigine === 'Spontanée' ? $('dRecommandantRole').value.trim() : '',
         dateEnvoi: '', relance: '', dateReponse: '', dateEntretien: '', notesEntretien: ''
       };
 
