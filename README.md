@@ -38,6 +38,7 @@ nom, téléphone, email, lien du portfolio, lien du CV.
 4. Le formulaire s'ouvre pré-rempli. **Relire l'accroche** : c'est le paragraphe qui rend la
    lettre spécifique à ce studio, et c'est ce qu'un recruteur remarque.
    Lire aussi la **Note** : l'IA doit y signaler les pièges (stage déguisé, séniorité hors de portée).
+   Vérifier la **Ville du studio** : elle alimente la phrase sur le déménagement dans la lettre.
 5. **✍️ Ajouter et rédiger la lettre** → la lettre s'affiche, éditable.
 6. Ajuster, puis **📥 Télécharger en Word**, **📋 Copier le texte** ou **✉️ Ouvrir Client Mail**.
 7. Une fois parti : **✅ Marquer comme Envoyé & Synchro**. La relance est planifiée à J+7
@@ -73,8 +74,11 @@ Aucune annonce n'est nécessaire : on part du studio.
 
 La phrase de recommandation est ajoutée automatiquement en tête de lettre par la variable
 `{recommandation}` : rien à rédiger à la main, et elle disparaît proprement s'il n'y a pas de
-recommandant. La clause d'ouverture s'adapte elle aussi — une lettre spontanée ne parle jamais
-de « votre offre ».
+recommandant. Dans les profils qui mentionnent l'annonce (2, 3, 4), la clause d'ouverture
+s'adapte via `{ouverture}` — une lettre spontanée ne parle jamais de « votre offre ».
+
+**Penser à renseigner la ville du studio**, même en spontané : elle alimente la phrase sur le
+déménagement. Un avertissement s'affiche tant qu'elle est vide.
 
 **La relance est planifiée à J+21**, et non J+7 : aucune échéance ne court côté studio, et
 relancer à une semaine ne signale que l'impatience.
@@ -158,10 +162,11 @@ La feuille doit rester **privée**. L'échange se fait à la main, dans les deux
 | **Vers Sheets** | Bouton **☁️ Copier pour Sheet** → `Ctrl+V` dans la cellule A1 |
 | **Depuis Sheets** | Dans la feuille : `Fichier > Télécharger > CSV`, puis **📂 Importer** |
 
-Les 19 colonnes exportées sont relues à l'identique — l'aller-retour ne perd rien. Les trois
+Les 20 colonnes exportées sont relues à l'identique — l'aller-retour ne perd rien. Les trois
 dernières (`Origine`, `Recommandant`, `Rôle recommandant`) ont été **ajoutées en fin de ligne**
-pour ne déplacer aucune colonne existante : une feuille ou un CSV antérieur, à 16 colonnes,
-s'importe toujours sans décalage et ses dossiers sont lus comme des réponses à annonce.
+pour ne déplacer aucune colonne existante : une feuille ou un CSV antérieur, avec ou sans la
+colonne `Ville`, s'importe toujours sans décalage et ses dossiers sont lus comme des réponses à
+annonce. Les colonnes sont repérées par leur **nom**, jamais par leur position.
 Pour une sauvegarde de sécurité, préférer quand même le JSON : Sheets reformate les dates et
 aplatit les listes de mots-clés.
 
@@ -247,17 +252,22 @@ Pour utiliser Claude, passer par « Copier le prompt » et claude.ai.
 
 ## 4. Personnaliser les modèles
 
-Bouton **✉️ Modèles**. Quatre profils prédéfinis (Classique, Rigging, Animation, Court) et un
-éditeur libre pour la lettre, le mail de candidature et le mail de relance.
+Bouton **✉️ Modèles**. Quatre profils prédéfinis (Lettre complète, Rigging, Animation, Court)
+et un éditeur libre pour la lettre, le mail de candidature et le mail de relance.
+
+Le modèle de lettre par défaut est la lettre longue d'Hippolyte (Rubika, *Icefall*, stage chez
+Circus), avec trois points de personnalisation par studio : `{studio}` dans la première phrase,
+`{accroche}` juste après, et `{ville}` dans la phrase sur la mobilité.
 
 ### Variables disponibles
 
 | Variable | Source | Remarque |
 |---|---|---|
 | `{studio}` `{poste}` `{reel}` | Analyse de l'offre | |
+| `{ville}` | Fiche de la candidature | Ville du studio, pour la phrase sur le déménagement. Non renseignée, elle s'affiche « … » et un avertissement rouge le signale |
 | `{accroche}` | Analyse de l'offre | **La variable clé** : 2-3 phrases propres à ce studio |
 | `{recommandation}` | Fiche de la candidature | « X, rigger chez eux, m'a suggéré de vous écrire. » — vide, et sans recommandant, la ligne disparaît |
-| `{ouverture}` | Origine de la candidature | « au sujet de votre offre de poste de X » ou « spontanément, pour un poste de X » |
+| `{ouverture}` | Origine de la candidature | « au sujet de votre offre de poste de X » ou « spontanément, pour un poste de X ». Utilisée par les profils 2, 3 et 4 ; le profil 1 ouvre déjà sur une formule valable dans les deux cas |
 | `{argumentsLettre}` | Analyse de l'offre | Paragraphe dans la lettre, puces dans les mails |
 | `{motsCles}` | Analyse de l'offre | Rendu « Compétences cibles : … » |
 | `{contact}` `{lien}` | Fiche de la candidature | |
@@ -277,6 +287,10 @@ conservé. Si une variable n'est pas reconnue, un avertissement s'affiche avant 
 > phrase de recommandation ni l'adaptation au spontané. Un toast liste les variables manquantes
 > à l'ouverture du panneau ; il suffit de cliquer sur le bouton correspondant pour les insérer,
 > ou de faire **Réinitialiser par Défaut**.
+
+> Même chose pour la lettre : un modèle déjà enregistré dans le navigateur **n'est pas
+> remplacé** par la nouvelle version par défaut. Pour la récupérer : **✉️ Modèles** →
+> *Réinitialiser par Défaut* (ou charger le profil « Lettre complète »), puis *Enregistrer*.
 
 ---
 
@@ -316,7 +330,8 @@ de vie — il n'y a pas de table séparée, pas de relation :
   dateEnvoi: "2026-07-01", relance: "2026-07-08",
   dateReponse: "", dateEntretien: "",
   notesEntretien: "…", prepaEntretien: "…",
-  lien: "https://…", contact: "Mme Durand", contactEmail: "rh@teamto.com"
+  lien: "https://…", ville: "Bourg-lès-Valence",
+  contact: "Mme Durand", contactEmail: "rh@teamto.com"
 }
 ```
 

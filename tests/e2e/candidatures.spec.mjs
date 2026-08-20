@@ -30,7 +30,7 @@ const DOSSIER_HISTORIQUE = {
   id: 'old1', studio: 'Ancien Studio', poste: 'Rigger', reel: 'Rigging', priorite: 'Haute',
   motsCles: ['Maya'], argumentsLettre: ['Argument historique.'], statut: 'Envoyé',
   dateEnvoi: '2026-01-01', relance: '', dateReponse: '', dateEntretien: '',
-  notesEntretien: '', lien: '', accroche: 'Accroche historique.',
+  notesEntretien: '', lien: '', accroche: 'Accroche historique.', ville: 'Angoulême',
   contact: 'Mme Ancienne', contactEmail: 'rh@ancien.fr'
 };
 
@@ -60,6 +60,7 @@ async function creerSpontanee(page, data) {
   await page.fill('#dPoste', data.poste);
   if (data.recommandant) await page.fill('#dRecommandant', data.recommandant);
   if (data.role) await page.fill('#dRecommandantRole', data.role);
+  await page.fill('#dVille', data.ville || 'Angoulême');
   await page.fill('#dAccroche', 'Accroche de test.');
   await page.fill('#dArguments', 'Argument un.\nArgument deux.');
   await page.fill('#dContactNom', 'Mme Dupont');
@@ -108,9 +109,11 @@ test('une spontanée recommandée produit une lettre citant le recommandant, san
 
   const lettre = await page.inputValue('#genDocText');
   expect(lettre).toContain("Julie Martin, rigger dans votre équipe, m'a suggéré de vous écrire.");
-  expect(lettre).toContain('je vous écris spontanément, pour un poste de Junior Rigger');
   // Le piège que cette feature existe pour éviter : inventer une offre inexistante.
   expect(lettre).not.toContain('votre offre');
+  expect(lettre).not.toContain("je réponds à votre");
+  // La ville alimente la phrase de mobilité, y compris en spontané.
+  expect(lettre).toContain('prêt à déménager à Angoulême');
 
   await expect(page.locator('#docGenWarning'))
     .toContainText('Vérifier sur le site du studio');
@@ -127,13 +130,23 @@ test('une spontanée froide n’ajoute aucune phrase de recommandation ni ligne 
 
   const lettre = await page.inputValue('#genDocText');
   expect(lettre).not.toContain("m'a suggéré de vous écrire");
-  expect(lettre).toContain('je vous écris spontanément, pour un poste de Animateur 3D');
+  expect(lettre).not.toContain('votre offre');
   // La ligne vide de {recommandation} ne doit pas laisser de trou dans la mise en page.
   expect(lettre).not.toMatch(/\n{3,}/);
 
   const [e] = await dossiers(page);
   expect(e.origine).toBe('Spontanée');
   expect(e.recommandant).toBe('');
+});
+
+test('en mode spontané le lien d’annonce disparaît mais la ville reste saisissable', async ({ page }) => {
+  await ouvrir(page);
+  await page.click('#spontaneeBtn');
+
+  // Le lien n'a pas de sens sans annonce ; la ville alimente la phrase de mobilité et en garde.
+  await expect(page.locator('#dLienWrap')).toBeHidden();
+  await expect(page.locator('#dVille')).toBeVisible();
+  await expect(page.locator('#dSpontaneeWrap')).toBeVisible();
 });
 
 test('la relance d’une spontanée est planifiée à J+21', async ({ page }) => {
@@ -171,7 +184,6 @@ test('le parcours réponse à annonce est inchangé : lien, ouverture, relance �
   await page.click('#addAndWriteBtn');
 
   const lettre = await page.inputValue('#genDocText');
-  expect(lettre).toContain('je vous écris au sujet de votre offre de poste de Rigger');
   expect(lettre).not.toContain("m'a suggéré de vous écrire");
   await expect(page.locator('#docGenWarning')).not.toContainText('Candidature spontanée');
 
@@ -257,15 +269,15 @@ test('l’export vers Sheets ajoute les trois colonnes en fin de ligne, sans dé
   const lignes = copie.split('\n');
   const entetes = lignes[0].split('\t');
 
-  expect(entetes).toHaveLength(19);
-  expect(entetes.slice(0, 16)).toEqual(['Studio', 'Poste', 'Reel', 'Priorité', 'Mots-clés',
+  expect(entetes).toHaveLength(20);
+  expect(entetes.slice(0, 17)).toEqual(['Studio', 'Poste', 'Reel', 'Priorité', 'Mots-clés',
     'À mettre en avant', 'Statut', 'Date Envoi', 'Relance', 'Date Réponse', 'Date Entretien',
-    'Notes', 'Lien', 'Contact', 'Email contact', 'Accroche']);
-  expect(entetes.slice(16)).toEqual(['Origine', 'Recommandant', 'Rôle recommandant']);
-  expect(lignes.every(l => l.split('\t').length === 19)).toBe(true);
+    'Notes', 'Lien', 'Ville', 'Contact', 'Email contact', 'Accroche']);
+  expect(entetes.slice(17)).toEqual(['Origine', 'Recommandant', 'Rôle recommandant']);
+  expect(lignes.every(l => l.split('\t').length === 20)).toBe(true);
 
   const spontanee = lignes.find(l => l.startsWith('Studio Reco')).split('\t');
-  expect(spontanee.slice(16)).toEqual(['Spontanée', 'Julie Martin', 'rigger dans votre équipe']);
+  expect(spontanee.slice(17)).toEqual(['Spontanée', 'Julie Martin', 'rigger dans votre équipe']);
   const historique = lignes.find(l => l.startsWith('Ancien Studio')).split('\t');
-  expect(historique.slice(16)).toEqual(['Annonce', '', '']);
+  expect(historique.slice(17)).toEqual(['Annonce', '', '']);
 });

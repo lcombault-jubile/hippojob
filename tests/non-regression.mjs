@@ -121,6 +121,11 @@ const ROW_16 = ['Mac Guff', 'Rigger', 'Rigging', 'Haute', 'Maya | Python', 'Arg 
   'rh@ex.com', 'Mon accroche'];
 const [old16] = rowsToEntries([HEADER_16, ROW_16]);
 
+// Format intermédiaire : la colonne Ville existe, pas encore l'origine.
+const HEADER_17 = [...HEADER_16.slice(0, 13), 'Ville', ...HEADER_16.slice(13)];
+const ROW_17 = [...ROW_16.slice(0, 13), 'Angoulême', ...ROW_16.slice(13)];
+const [old17] = rowsToEntries([HEADER_17, ROW_17]);
+
 check('CSV 16 col — studio', old16.studio, 'Mac Guff');
 check('CSV 16 col — poste', old16.poste, 'Rigger');
 check('CSV 16 col — reel', old16.reel, 'Rigging');
@@ -138,17 +143,25 @@ check('CSV 16 col — accroche', old16.accroche, 'Mon accroche');
 check('CSV 16 col — origine par défaut', old16.origine, 'Annonce');
 check('CSV 16 col — recommandant vide', old16.recommandant, '');
 check('CSV 16 col — rôle vide', old16.recommandantRole, '');
+check('CSV 16 col — ville absente', old16.ville, '');
 
-// Nouveau format à 19 colonnes : les trois champs ajoutés sont relus sans confusion entre
+check('CSV 17 col — ville relue', old17.ville, 'Angoulême');
+check('CSV 17 col — contact non décalé', old17.contact, 'Mme Dupont');
+check('CSV 17 col — email non décalé', old17.contactEmail, 'rh@ex.com');
+check('CSV 17 col — accroche non décalée', old17.accroche, 'Mon accroche');
+check('CSV 17 col — origine par défaut', old17.origine, 'Annonce');
+
+// Format complet à 20 colonnes : les trois champs ajoutés sont relus sans confusion entre
 // « Recommandant » et « Rôle recommandant ».
-const HEADER_19 = [...HEADER_16, 'Origine', 'Recommandant', 'Rôle recommandant'];
-const ROW_19 = [...ROW_16, 'Spontanée', 'Julie Martin', 'rigger chez eux'];
-const [new19] = rowsToEntries([HEADER_19, ROW_19]);
-check('CSV 19 col — origine', new19.origine, 'Spontanée');
-check('CSV 19 col — recommandant', new19.recommandant, 'Julie Martin');
-check('CSV 19 col — rôle', new19.recommandantRole, 'rigger chez eux');
-check('CSV 19 col — accroche intacte', new19.accroche, 'Mon accroche');
-check('CSV 19 col — email intact', new19.contactEmail, 'rh@ex.com');
+const HEADER_20 = [...HEADER_17, 'Origine', 'Recommandant', 'Rôle recommandant'];
+const ROW_20 = [...ROW_17, 'Spontanée', 'Julie Martin', 'rigger chez eux'];
+const [new20] = rowsToEntries([HEADER_20, ROW_20]);
+check('CSV 20 col — origine', new20.origine, 'Spontanée');
+check('CSV 20 col — recommandant', new20.recommandant, 'Julie Martin');
+check('CSV 20 col — rôle', new20.recommandantRole, 'rigger chez eux');
+check('CSV 20 col — accroche intacte', new20.accroche, 'Mon accroche');
+check('CSV 20 col — email intact', new20.contactEmail, 'rh@ex.com');
+check('CSV 20 col — ville intacte', new20.ville, 'Angoulême');
 
 // Feuille rédigée à la main : une seule colonne Contact contenant une adresse.
 const [manuel] = rowsToEntries([['Studio', 'Poste', 'Contact'], ['Illumination', 'Animateur', 'rh@illu.fr']]);
