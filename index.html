@@ -1171,7 +1171,7 @@
           </div>
           <div class="field" style="margin-bottom:0;">
             <label for="dRecommandantRole">Son lien avec le studio</label>
-            <input type="text" id="dRecommandantRole" placeholder="Ex. rigger chez eux, promo Rubika 2021">
+            <input type="text" id="dRecommandantRole" placeholder="Ex. rigger dans votre équipe, promo Rubika 2021">
           </div>
         </div>
         <div class="action-row" style="margin-top:12px;">
@@ -2960,6 +2960,23 @@ Réponds UNIQUEMENT par un objet JSON valide, sans texte ni balise markdown avan
 - accroche (string) : 2 à 3 phrases à la première personne, expliquant pourquoi CE studio et pas un autre. Appuie-toi sur ce que le studio FAIT (type de production, style, technique), jamais sur ce qu'il demanderait. Interdiction absolue des formules passe-partout du type « je suis très motivé » ou « votre studio est reconnu ». Pas de superlatif creux.
 - argumentsLettre (tableau de 2 à 4 strings) : chaque élément est une PHRASE COMPLÈTE, à la première personne, terminée par un point, reliant un besoin plausible de ce studio à une expérience concrète d'Hippolyte. Pas de mots-clés isolés, pas de fragments nominaux.`;
 
+    /**
+     * Guards against silently turning a half-typed spontaneous application into an
+     * "annonce" one.
+     * Why: the pasted-JSON textarea is shared by both modes. Starting an annonce analysis
+     * while a spontanée is open would discard the referrer and store the wrong origine —
+     * silently, and the letter would then claim to answer an offer that does not exist.
+     * @returns {boolean} False when the user cancelled
+     */
+    function confirmerAbandonSpontanee() {
+      if (draftOrigine !== 'Spontanée') return true;
+      if ($('draftPanel').style.display === 'none') return true;
+      const saisie = $('dStudio').value.trim() || $('dRecommandant').value.trim()
+        || $('dAccroche').value.trim();
+      if (!saisie) return true;
+      return confirm("Une candidature spontanée est en cours de saisie.\n\nAnalyser une annonce va la remplacer, recommandation comprise.\n\nContinuer ?");
+    }
+
     $('spontaneeBtn').addEventListener('click', () => {
       draft = null;
       fillDraft({
@@ -2996,6 +3013,7 @@ Réponds UNIQUEMENT par un objet JSON valide, sans texte ni balise markdown avan
     });
 
     $('copyPromptBtn').addEventListener('click', () => {
+      if (!confirmerAbandonSpontanee()) return;
       setDraftMode('Annonce', true);
       const text = $('jobText').value.trim();
       if (!text) {
@@ -3064,6 +3082,7 @@ Réponds UNIQUEMENT par un objet JSON valide, sans texte ni balise markdown avan
     // dans le localStorage d'une page publique. Utiliser « Copier le prompt » avec Claude.ai.
 
     $('analyzeBtn').addEventListener('click', async () => {
+      if (!confirmerAbandonSpontanee()) return;
       setDraftMode('Annonce', true);
       const status = $('analyzeStatus');
       const text = $('jobText').value.trim();

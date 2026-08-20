@@ -56,6 +56,9 @@ Aucune annonce n'est nécessaire : on part du studio.
 2. Saisir le **studio** et le **poste visé**. Si quelqu'un a accepté d'être cité, remplir
    **Recommandé par** et **Son lien avec le studio** (ex. « rigger chez eux, promo Rubika
    2021 »). Laisser vide pour une candidature à froid.
+   Si une analyse d'annonce est lancée alors qu'une spontanée est en cours de saisie, une
+   confirmation s'affiche : les deux parcours partagent la zone « Réponse collée », et basculer
+   effacerait la recommandation sans le dire.
 3. **📋 Copier le prompt de recherche studio** → coller dans Claude.ai ou Gemini. L'IA renvoie
    le même JSON que pour une annonce, mais construit à partir de ce qu'elle sait du studio :
    accroche, arguments, mots-clés, **reel conseillé** et une note sur sa fiabilité.
