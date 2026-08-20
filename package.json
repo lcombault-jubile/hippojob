@@ -1,0 +1,15 @@
+{
+  "name": "hippojob",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Suivi de candidatures Animation 3D / Rigging — page HTML unique, sans build.",
+  "scripts": {
+    "test": "node tests/non-regression.mjs && playwright test",
+    "test:unit": "node tests/non-regression.mjs",
+    "test:e2e": "playwright test",
+    "serve": "python3 -m http.server 8777"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
+}

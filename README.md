@@ -379,6 +379,9 @@ bloqués, et un seul accès non protégé interrompt tout le script.
 - **Aucune synchronisation multi-appareils.** Si le besoin apparaît, la piste est OAuth Google
   avec le scope étroit `drive.file` — à instruire, la charge de vérification Google étant le
   point à valider en premier.
+- **Aucune dépendance d'exécution installée localement.** `package.json` n'existe que pour les
+  tests ; `node_modules/` est ignoré par git et le site déployé n'en a aucun besoin. La seule
+  dépendance chargée par la page reste la librairie `docx`, via unpkg.
 
 ### Développement
 
@@ -389,17 +392,35 @@ python3 -m http.server 8777
 Puis ouvrir `http://localhost:8777/`. Ouvrir le fichier en `file://` **ne fonctionne pas** :
 `localStorage` y est indisponible.
 
-**Tests de non-régression** — aucune dépendance, aucun framework :
+### Tests
 
 ```bash
-node tests/non-regression.mjs
+npm test
 ```
 
-Le script extrait les fonctions pures d'`index.html` par leur nom et les évalue hors DOM. Il
-couvre les points où une régression détruirait des données : `normalizeStatut`,
-`normalizeOrigine`, l'import CSV (formats 16 et 19 colonnes), `compileTemplate` et
-`parseArguments`. À lancer avant tout commit touchant à ces fonctions — **et à compléter quand
-on en renomme une**, l'extraction se faisant par nom.
+Deux niveaux, lançables séparément :
+
+| Commande | Ce que ça couvre |
+|---|---|
+| `npm run test:unit` | Les **fonctions pures**, hors DOM et sans aucune dépendance |
+| `npm run test:e2e` | Les **parcours réels** dans un vrai navigateur (Playwright) |
+
+**`tests/non-regression.mjs`** extrait les fonctions pures d'`index.html` par leur nom et les
+évalue dans un contexte Node minimal. Il couvre les points où une régression détruirait des
+données : `normalizeStatut`, `normalizeOrigine`, l'import CSV (formats 16 et 19 colonnes),
+`compileTemplate` et `parseArguments`. **À compléter quand on renomme une de ces fonctions** :
+l'extraction se fait par nom, un renommage fait échouer le script avec « Fonction introuvable »
+— échec bruyant volontaire, préférable à un test silencieusement vide.
+
+**`tests/e2e/candidatures.spec.mjs`** pilote un vrai navigateur : migration d'un dossier
+antérieur au champ `origine`, parcours spontané recommandé et froid, non-régression du parcours
+annonce, délais de relance, garde-fou de bascule, filtres, stats et export Sheets.
+
+> **Playwright est la seule dépendance du projet, et elle est de développement uniquement.**
+> Le site servi reste un `index.html` sans build. La configuration réutilise le **Google Chrome
+> déjà installé** (`channel: 'chrome'`) plutôt que de télécharger un Chromium de ~130 Mo. Sur
+> une machine sans Chrome : `npx playwright install chromium`, puis retirer la ligne `channel`
+> de `playwright.config.mjs`.
 
 ---
 
